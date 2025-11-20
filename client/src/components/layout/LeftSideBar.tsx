@@ -10,7 +10,7 @@ export default function LeftSidebar() {
     { label: "Home", icon: Home, href: "/" },
     { label: "Search", icon: Search, href: "/search" },
     { label: "Follows", icon: Users, href: "/follows" },
-    { label: "Profile", icon: User, href: "/profile" },
+    { label: "Profile", icon: User, href: "/profile" },   
   ];
 
   function handleLogout() {
@@ -19,7 +19,7 @@ export default function LeftSidebar() {
   }
 
   return (
-    <aside className="h-screen w-64 border-l p-6 flex flex-col gap-6 bg-blue-300 text-white 
+    <aside className="h-screen w-64 p-6 flex flex-col gap-6 bg-blue-300 text-white 
   fixed left-0 top-0 overflow-y-auto">
       <img src={logo} alt="Circle Hub Logo" className=" mb-4 h-25" />
 
@@ -42,6 +42,10 @@ export default function LeftSidebar() {
           );
         })}
       </nav>
+
+      <label className="cursor-pointer bg-green-500 text-blue-950 hover:bg-white font-semibold text-lg px-4 rounded-xl text-center">
+        Create Post
+      </label>
 
       <div className="mt-auto">
         <Button

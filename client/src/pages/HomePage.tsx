@@ -2,12 +2,15 @@ import { useState, useEffect, useContext } from "react";
 import { Link } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import ThreadList from "../components/thread/ThreadList";
+import ThreadPost from "../components/thread/ThreadPost";
+import { useSelector } from "react-redux";
 
 export default function HomePage() {
   const context = useContext(AuthContext);
   if (!context) return null;
 
   const { token } = context;
+  const currentUser = useSelector((state: any) => state.user.currentUser);
   const [threads, setThreads] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -18,7 +21,7 @@ export default function HomePage() {
 
   async function fetchThreads() {
     try {
-      const response = await fetch("http://localhost:3000/api/threads", {
+      const response = await fetch("http://localhost:3002/api/threads", {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -35,6 +38,18 @@ export default function HomePage() {
     }
   }
 
+  const handleThreadCreated = (newThread: any) => {
+    const preparedThread = {
+      ...newThread,
+      likesCount: 0,
+      isLiked: false,
+      full_name: newThread.user?.full_name || "Anonymous",
+      username: newThread.user?.username || "user",
+      avatar: newThread.user?.photo_profile || null,
+    };
+    setThreads(prev => [preparedThread, ...prev]);
+  };
+
   // LIKE / UNLIKE
 const toggleLike = async (threadId: number, isLiked: boolean) => {
   try {
@@ -46,7 +61,7 @@ const toggleLike = async (threadId: number, isLiked: boolean) => {
     const method = isLiked ? "DELETE" : "POST";
 
     // kirim request ke server
-    await fetch(`http://localhost:3000/api/threads/${threadId}/like`, {
+    await fetch(`http://localhost:3002/api/threads/${threadId}/like`, {
       method,
       headers: {
         "Authorization": `Bearer ${token}`,
@@ -54,7 +69,7 @@ const toggleLike = async (threadId: number, isLiked: boolean) => {
       },
     });
 
-    // update state lokal → langsung nambah/kurang 1
+    // update state lokal 
     setThreads(prev =>
       prev.map(t =>
         t.id === threadId
@@ -90,6 +105,13 @@ const toggleLike = async (threadId: number, isLiked: boolean) => {
       <header className="px-4 py-3 border-b border-neutral-800 sticky top-0 bg-blue-300/80 backdrop-blur">
         <h1 className="text-xl font-bold">Home</h1>
       </header>
+
+      {/* ThreadPost */}
+      <ThreadPost
+        token={token!}
+        userAvatar={currentUser?.photo_profile ? `http://localhost:3002/uploads/${currentUser.photo_profile}` : undefined}
+        onThreadCreated={handleThreadCreated}
+      />
 
       {/* Content */}
       {loading ? (

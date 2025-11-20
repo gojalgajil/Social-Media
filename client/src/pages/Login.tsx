@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { AuthContext } from "../context/AuthContext";
 import logo from "../assets/CirlceHubLogo.png";
+import { useDispatch } from "react-redux";
+import { setUser } from "../stores/userSlice";
 
 export default function Login(){
     const context = useContext(AuthContext);
@@ -16,12 +18,13 @@ export default function Login(){
     const [password, setPassword] = useState('');
 
     const [message, setMessage] = useState('');
+    const dispatch = useDispatch();
 
     const handleLogin = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
         e.preventDefault();
         setMessage('');
         try {
-            const response = await fetch('http://localhost:3000/api/auth/login', {
+            const response = await fetch('http://localhost:3002/api/auth/login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -35,6 +38,17 @@ export default function Login(){
             if (response.ok) {
                 // Assuming data includes token
                 login(data.token);
+                try {
+                    const userResp = await fetch('http://localhost:3002/api/auth/me', {
+                        headers: { Authorization: data.token },
+                    });
+                    if (userResp.ok) {
+                        const userData = await userResp.json();
+                        dispatch(setUser({ user: userData, token: data.token }));
+                    }
+                } catch (error) {
+                    console.log('Failed to fetch user', error);
+                }
                 navigate('/');
             } else {
                 setMessage(data.message || 'Login failed');

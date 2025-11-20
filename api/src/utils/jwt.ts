@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 
-const JWT_SECRET = process.env.JWT_SECRET as string; //signature, yg ngesign akses
+const JWT_SECRET = process.env.JWT_SECRET || "supersecretkey"; //signature, yg ngesign akses
 
 export interface UserPayload {
     id: number;

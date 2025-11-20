@@ -2,10 +2,12 @@ import { Request, Response } from 'express';
 import { prisma } from '../prisma/client';
 import ThreadModel from '../models/Thread';
 import { createThreadSchema, updateThreadSchema } from '../validation/auth_joi';
+import { broadcast } from '../services/socketService';
+import { imageQueue } from '../queues/imageQueue';
 
 class ThreadController {
   // Get all threads
-  async getAllThreads(req: Request, res: Response) {
+async getAllThreads(req: Request, res: Response) {
     try {
       const authUser = (req as any).user;
 
@@ -28,6 +30,9 @@ const threads = await Promise.all(
       ...t,
       likesCount: likes,
       isLiked: Boolean(isLiked),
+      full_name: t.user?.full_name || "Anonymous",
+      username: t.user?.username || "user",
+      avatar: t.user?.photo_profile || null,
     };
   })
 );
@@ -91,68 +96,86 @@ const threads = await Promise.all(
   }
 
   // Create a new thread
-  async createThread(req: Request, res: Response) {
-    try {
-      if (!req.body || typeof req.body !== 'object') {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid request body',
-        });
-      }
-
-      const { error } = createThreadSchema.validate(req.body);
-      if (error) {
-        return res.status(400).json({
-          success: false,
-          message: error.details[0].message,
-        });
-      }
-
-      const { content } = req.body;
-      const image = req.file ? req.file.filename : '';
-      const authUser = (req as any).user;
-
-      const newThread = await ThreadModel.create({
-        content,
-        image: image || '',
-        number_of_replies: 0,
-        created_by: authUser.id.toString(),
-        updated_by: authUser.id.toString(),
-      });
-
-      // Fetch user info for the new thread
-      const user = await prisma.user.findUnique({
-        where: { id: parseInt(newThread.created_by) },
-        select: {
-          id: true,
-          username: true,
-          full_name: true,
-          photo_profile: true,
-        },
-      });
-
-      const enrichedThread = {
-        id: newThread.id,
-        content: newThread.content,
-        image: newThread.image,
-        number_of_replies: newThread.number_of_replies,
-        created_at: newThread.created_at,
-        user: user || null,
-      };
-
-      res.status(201).json({
-        success: true,
-        message: 'Thread created successfully',
-        data: enrichedThread,
-      });
-    } catch (error) {
-      res.status(500).json({
+ async createThread(req: Request, res: Response) {
+  try {
+    if (!req.body || typeof req.body !== 'object') {
+      return res.status(400).json({
         success: false,
-        message: 'Error creating thread',
-        error: (error as Error).message,
+        message: 'Invalid request body',
       });
     }
+
+    const { error } = createThreadSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({
+        success: false,
+        message: error.details[0].message,
+      });
+    }
+
+    const { content } = req.body;
+    let image = "";
+
+    if (Array.isArray(req.files)) {
+      const uploadedImg = req.files.find((f: any) => f.fieldname === "image");
+      if (uploadedImg) {
+        image = uploadedImg.filename;
+      }
+    }
+    const authUser = (req as any).user;
+
+    // ⬇⬇⬇ BUAT THREAD SEPERTI BIASA ⬇⬇⬇
+    const newThread = await ThreadModel.create({
+      content,
+      image: image || '',
+      number_of_replies: 0,
+      created_by: authUser.id.toString(),
+      updated_by: authUser.id.toString(),
+    });
+
+    // ⬇⬇⬇ MASUKKAN KE MESSAGE QUEUE UNTUK PROSES GAMBAR ⬇⬇⬇
+    if (image) {
+      await imageQueue.add("processImage", {
+        threadId: newThread.id,
+        imagePath: image,
+      });
+    }
+
+    // Fetch user info for the new thread
+    const user = await prisma.user.findUnique({
+      where: { id: parseInt(newThread.created_by) },
+      select: {
+        id: true,
+        username: true,
+        full_name: true,
+        photo_profile: true,
+      },
+    });
+
+    const enrichedThread = {
+      id: newThread.id,
+      content: newThread.content,
+      image: newThread.image,
+      number_of_replies: newThread.number_of_replies,
+      created_at: newThread.created_at,
+      user: user || null,
+    };
+
+    broadcast({ type: 'new_thread', thread: enrichedThread });
+
+    res.status(201).json({
+      success: true,
+      message: 'Thread created successfully',
+      data: enrichedThread,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error creating thread',
+      error: (error as Error).message,
+    });
   }
+}
 
   // Update thread
   async updateThread(req: Request, res: Response) {
@@ -310,6 +333,8 @@ async toggleLike(req: Request, res: Response) {
         where: { id: existingLike.id },
       });
 
+      broadcast({ type: 'like_update', threadId, liked: false });
+
       return res.status(200).json({
         success: true,
         liked: false,
@@ -326,6 +351,8 @@ async toggleLike(req: Request, res: Response) {
         updated_by: String(userId),
       },
     });
+
+    broadcast({ type: 'like_update', threadId, liked: true });
 
     return res.status(200).json({
       success: true,

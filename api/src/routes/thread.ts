@@ -1,16 +1,21 @@
 import express from 'express';
 import multer from 'multer';
+import path from 'path';
 import { authenticate } from '../middlewares/auth';
 import threadController from '../controller/threads';
 import threads from '../controller/threads';
+import fs from "fs";
 
 const router = express.Router();
+// Folder uploads sejajar src/
+const uploadPath = path.join(__dirname, "..", "..", "uploads");
 
-import path from 'path';
+// Buat folder kalau belum ada
+if (!fs.existsSync(uploadPath)) fs.mkdirSync(uploadPath, { recursive: true });
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, '../uploads/');
+    cb(null, uploadPath);
   },
   filename: (req, file, cb) => {
     const uniqueName = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -36,14 +41,7 @@ router.get('/:id', authenticate, threadController.getThreadById);
 router.post("/:id/like", authenticate, threads.toggleLike);
 
 // Create a new thread (protected)
-router.post('/', authenticate, (req, res, next) => {
-  upload.single('image')(req, res, (err: any) => {
-    if (err) {
-      return res.status(400).json({ success: false, message: 'File upload error' });
-    }
-    next();
-  });
-}, threadController.createThread);
+router.post("/", authenticate, upload.any(), threadController.createThread);
 
 // Update thread (protected)
 router.put('/:id', authenticate, threadController.updateThread);
