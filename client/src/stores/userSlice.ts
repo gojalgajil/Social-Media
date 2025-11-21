@@ -2,11 +2,11 @@ import { createSlice } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 
 interface User {
-  id: string;
+  id: number;
   username: string;
   full_name: string;
   email: string;
-  photo_profile: string;
+  photo_profile: string | null;
 }
 
 interface UserState {
@@ -15,25 +15,38 @@ interface UserState {
   isAuthenticated: boolean;
 }
 
+const tokenFromStorage = localStorage.getItem("token");
+
 const initialState: UserState = {
   currentUser: null,
-  token: null,
-  isAuthenticated: false,
+  token: tokenFromStorage || null,
+  isAuthenticated: tokenFromStorage ? true : false,
 };
 
 const userSlice = createSlice({
   name: 'user',
   initialState,
   reducers: {
-    setUser: (state, action: PayloadAction<{ user: User; token: string }>) => {
+    setUser: (
+      state, 
+      action: PayloadAction<{ user: User; token?: string }>
+    ) => {
       state.currentUser = action.payload.user;
-      state.token = action.payload.token;
+
+      // only update token if given
+      if (action.payload.token) {
+        state.token = action.payload.token;
+        localStorage.setItem("token", action.payload.token);
+      }
+
       state.isAuthenticated = true;
     },
+
     logout: (state) => {
       state.currentUser = null;
       state.token = null;
       state.isAuthenticated = false;
+      localStorage.removeItem("token");
     },
   },
 });

@@ -30,7 +30,7 @@ const threads = await Promise.all(
       ...t,
       likesCount: likes,
       isLiked: Boolean(isLiked),
-      full_name: t.user?.full_name || "Anonymous",
+      full_name: t.user?.full_name,
       username: t.user?.username || "user",
       avatar: t.user?.photo_profile || null,
     };

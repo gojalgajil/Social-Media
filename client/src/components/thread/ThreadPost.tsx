@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useImperativeHandle, forwardRef, useEffect } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import PostModal from "./PostModal";
 
@@ -6,14 +6,31 @@ interface CreateThreadProps {
   token: string;
   onThreadCreated: (newThread: any) => void;
   userAvatar?: string;
+  showBottomDisplay?: boolean;
+  modalKey?: number;
 }
 
-export default function CreateThread({ token, onThreadCreated, userAvatar }: CreateThreadProps) {
-  const [content, setContent] = useState("");
-  const [image, setImage] = useState<File | null>(null);
-  const [loading, setLoading] = useState(false);
+export interface CreateThreadRef {
+  openModal: () => void;
+}
 
-  const [openModal, setOpenModal] = useState(false);
+const CreateThreadComponent = forwardRef<CreateThreadRef, CreateThreadProps>(
+  ({ token, onThreadCreated, userAvatar, showBottomDisplay = true, modalKey }, ref) => {
+    const [content, setContent] = useState("");
+    const [image, setImage] = useState<File | null>(null);
+    const [loading, setLoading] = useState(false);
+    const [openModal, setOpenModal] = useState(false);
+
+    useImperativeHandle(ref, () => ({
+      openModal: () => setOpenModal(true),
+    }));
+
+    // Close modal when modalKey changes (for reset)
+    useEffect(() => {
+      if (modalKey !== undefined) {
+        setOpenModal(true);
+      }
+    }, [modalKey]);
 
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -105,7 +122,7 @@ export default function CreateThread({ token, onThreadCreated, userAvatar }: Cre
 
 
       {/* ini buat tampilan sebelum diklik */}
-      <div className="border-b p-4 flex gap-3">
+      {showBottomDisplay && <div className="border-b p-4 flex gap-3">
         <img
           src={userAvatar || "https://via.placeholder.com/40"}
           className="w-10 h-10 rounded-full object-cover"
@@ -146,7 +163,11 @@ export default function CreateThread({ token, onThreadCreated, userAvatar }: Cre
             </div>
           </div>
         </div>
-      </div>
+      </div>}
     </>
   );
-}
+});
+
+CreateThreadComponent.displayName = 'CreateThread';
+
+export default CreateThreadComponent;

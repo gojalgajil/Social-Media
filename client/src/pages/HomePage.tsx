@@ -14,6 +14,23 @@ export default function HomePage() {
   const [threads, setThreads] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [userAvatar, setUserAvatar] = useState("");
+
+  useEffect(() => {
+    let avatarUrl = "";
+    try {
+      const userData = localStorage.getItem("user");
+      if (userData) {
+        const parsed = JSON.parse(userData);
+        if (parsed.photo_profile) {
+          avatarUrl = `http://localhost:3002/uploads/${parsed.photo_profile}`;
+        }
+      }
+    } catch (error) {
+      console.error("Error parsing user data:", error);
+    }
+    setUserAvatar(avatarUrl);
+  }, []);
 
   useEffect(() => {
     if (token) fetchThreads();
@@ -43,7 +60,7 @@ export default function HomePage() {
       ...newThread,
       likesCount: 0,
       isLiked: false,
-      full_name: newThread.user?.full_name || "Anonymous",
+      full_name: newThread.user?.full_name,
       username: newThread.user?.username || "user",
       avatar: newThread.user?.photo_profile || null,
     };

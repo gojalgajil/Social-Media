@@ -1,27 +1,42 @@
 import express from "express";
 import { authenticate } from "../middlewares/auth";
+import { prisma } from '../prisma/client';
+
 
 const router = express.Router();
 
-router.get("/me", authenticate, async (req, res) => {
-    try {
-        // User info is in req.user from authenticate middleware
-        const user = (req as any).user;
-        if (!user) {
-            return res.status(401).json({ message: "User not authenticated" });
-        }
+router.get('/me', authenticate, async (req, res) => {
+  const { user } = req as any;
 
-        // You can fetch more user details from database if needed
-        res.json({
-            message: "User profile",
-            user: {
-                id: user.id,
-                // Add other user fields as needed
-            }
-        });
-    } catch (error) {
-        res.status(500).json({ message: "Server error" });
+  try {
+    const userData = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: {
+        id: true,
+        username: true,
+        full_name: true,
+        email: true,
+        photo_profile: true,
+        bio: true,
+        created_at: true,
+        created_by: true,
+        updated_at: true,
+        updated_by: true
+      }
+    });
+
+    if (!userData) {
+      return res.status(404).json({ message: 'User not found' });
     }
+
+    return res.json({
+      message: "User profile",
+      user: userData
+    });
+
+  } catch (error) {
+    return res.status(500).json({ message: 'Internal server error' });
+  }
 });
 
 export default router;

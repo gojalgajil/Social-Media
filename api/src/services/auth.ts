@@ -7,6 +7,7 @@ interface AuthResponse {
   username: string;
   full_name: string;
   email: string;
+  photo_profile: string | null;
   token: string;
 }
 
@@ -16,8 +17,10 @@ export const registerUser = async (
   full_name: string,
   email: string,
   password: string,
+  photo_profile?: string,
   created_by: string = 'system'
 ): Promise<AuthResponse> => {
+  
   // Validasi sederhana
   if (!email.match(/@/) || password.length < 6) {
     throw new Error("Invalid email or password");
@@ -39,6 +42,7 @@ export const registerUser = async (
       full_name,
       email,
       password: hashed,
+      photo_profile: photo_profile || null,
       created_by,
       updated_by: created_by
     },
@@ -51,12 +55,13 @@ export const registerUser = async (
   const token = signToken(payload);
 
   return {
-    user_id: user.id,
-    username: user.username,
-    full_name: user.full_name,
-    email: user.email,
-    token
-  };
+  user_id: user.id,
+  username: user.username,
+  full_name: user.full_name,
+  email: user.email,
+  photo_profile: user.photo_profile ? `${process.env.BASE_URL}/uploads/${user.photo_profile}` : null,
+  token
+};
 };
 
 // LOGIN
@@ -77,6 +82,7 @@ export async function loginUser(email: string, password: string): Promise<AuthRe
     username: user.username,
     full_name: user.full_name,
     email: user.email,
+    photo_profile: user.photo_profile ? `${process.env.BASE_URL}/uploads/${user.photo_profile}` : null,
     token
   };
 }

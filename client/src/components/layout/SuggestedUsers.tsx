@@ -28,7 +28,7 @@ className="w-8 h-8 rounded-full"
 <p className="text-sm text-white">{user.username}</p>
 </div>
 </div>
-<button className="bg-white text-blue-950 px-3 py-1 rounded-full text-sm font-semibold">
+<button className="bg-white text-blue-950 px-3 py-1 cursor-pointer rounded-full text-sm font-semibold">
 Follow
 </button>
 </div>

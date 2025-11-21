@@ -91,7 +91,9 @@ class ThreadModel {
       image: thread.image,
       number_of_replies: thread.number_of_replies,
       created_at: thread.created_at,
-      user: user || null,
+      full_name: user?.full_name,
+      username: user?.username || "user",
+      avatar: user?.photo_profile || null,
     };
   }
 

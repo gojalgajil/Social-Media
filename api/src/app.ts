@@ -6,6 +6,7 @@ import { WebSocketServer } from "ws";
 import authRoutes from './routes/auth';
 import userRoutes from './routes/user';
 import threadRoutes from './routes/thread';
+import repliesRoutes from './routes/replies';
 import corsMiddleware from './middlewares/cors';
 import path from "path";
 
@@ -28,6 +29,7 @@ console.log("SERVING UPLOADS FROM:", uploadsPath);
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/threads', threadRoutes);
+app.use('/api/replies', repliesRoutes);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

@@ -1,4 +1,5 @@
 import { MessageCircle, Heart } from "lucide-react";
+import { useNavigate } from 'react-router-dom';
 
 interface Thread {
   id: number;
@@ -20,13 +21,15 @@ export default function ThreadCard({
   thread: Thread;
   toggleLike?: (threadId: number, hasLiked: boolean) => Promise<void>;
 }) {
+  const navigate = useNavigate();
   return (
     <div className="border-b border-blue-950 py-4 px-2 flex gap-4">
       <div>
         <img
           src={
-            thread.avatar ||
-            "https://cdn.pixabay.com/photo/2023/02/18/11/00/icon-7797704_640.png"
+            thread.avatar
+              ? `http://localhost:3002/uploads/${thread.avatar}`
+              : "https://cdn.pixabay.com/photo/2023/02/18/11/00/icon-7797704_640.png"
           }
           className="w-10 h-10 rounded-full object-cover"
         />
@@ -34,14 +37,14 @@ export default function ThreadCard({
 
       <div className="flex-1">
         <div className="flex items-center gap-2">
-          <span className="font-semibold">{thread.full_name || "Anonymous"}</span>
-          <span className="text-xs text-white">@{thread.username || "user"}</span>
+          <span className="font-semibold">{thread.full_name}</span>
+          <span className="text-sm text-white">@{thread.username}</span>
           <span className="text-xs text-gray-500">
             • {new Date(thread.created_at).toLocaleDateString()}
           </span>
         </div>
 
-        <p className="mt-1 text-sm text-black">{thread.content}</p>
+        <p className="mt-1 text-black">{thread.content}</p>
 
         {thread.image && (
           <img
@@ -65,7 +68,10 @@ export default function ThreadCard({
             <span>{thread.likesCount || 0}</span>
           </div>
 
-          <div className="flex items-center gap-2 hover:text-white cursor-pointer">
+          <div 
+            onClick={() => navigate(`/thread/${thread.id}`)}
+            className="flex items-center gap-2 hover:text-white cursor-pointer"
+          >
             <MessageCircle size={18} /> {thread.number_of_replies || 0}
           </div>
         </div>

@@ -1,3 +1,5 @@
+import ReactDOM from 'react-dom';
+
 interface PostModalProps {
   open: boolean;
   onClose: () => void;
@@ -7,8 +9,8 @@ interface PostModalProps {
 export default function PostModal({ open, onClose, children }: PostModalProps) {
   if (!open) return null;
 
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-start justify-center pt-24 z-50">
+  const modal = (
+    <div className="fixed inset-0 bg-black/50 flex items-start justify-center pt-24 z-[9999]">
       <div className="bg-blue-300 rounded-xl p-4 w-full max-w-lg relative">
 
         {/* CLOSE BUTTON */}
@@ -26,4 +28,6 @@ export default function PostModal({ open, onClose, children }: PostModalProps) {
       </div>
     </div>
   );
+
+  return ReactDOM.createPortal(modal, document.body);
 }

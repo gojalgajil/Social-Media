@@ -4,14 +4,47 @@ import { AuthProvider } from './context/AuthProvider'
 import Register from './pages/Register'
 import Login from './pages/Login'
 import HomePage from './pages/HomePage'
+import Status from './pages/Status'
 
-// Layout utama untuk halaman setelah login
+// Layout
 import LeftSidebar from './components/layout/LeftSideBar'
 import RightSidebar from './components/layout/RightSideBar'
 
+// Redux + Axios
+import { useDispatch, useSelector } from "react-redux";
+import { setUser } from "./stores/userSlice";
+import { useEffect } from "react";
+import axios from "axios";
 
 function AppWrapper() {
   const location = useLocation();
+  const dispatch = useDispatch();
+
+  const token = useSelector((state: any) => state.user.token)
+    || localStorage.getItem("token");
+
+  // AUTO FETCH USER
+  useEffect(() => {
+    const fetchUser = async () => {
+      if (!token) return;
+
+      try {
+        const res = await axios.get("http://localhost:3002/api/user/me", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        dispatch(setUser({ user: res.data, token }));
+        localStorage.setItem("currentUser", JSON.stringify(res.data));
+
+      } catch (err) {
+        console.error("Failed to auto fetch user:", err);
+      }
+    };
+
+    fetchUser();
+  }, [token]);
 
   // Cek apakah halaman login/register
   const authPages = ["/login", "/register"]
@@ -20,19 +53,18 @@ function AppWrapper() {
   return (
     <>
       {isAuthPage ? (
-        // Kalau login atau register -> tampilkan halaman saja
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
         </Routes>
       ) : (
-        // Selain itu -> pakai layout lengkap
         <div className="flex min-h-screen bg-blue-300 text-blue-950">
           <LeftSidebar />
 
-          <main className="flex-1 ml-64 mr-80">
+          <main className="flex-1 ml-75 mr-100">
             <Routes>
               <Route path="/" element={<HomePage />} />
+              <Route path="/thread/:threadId" element={<Status />} />
             </Routes>
           </main>
 
