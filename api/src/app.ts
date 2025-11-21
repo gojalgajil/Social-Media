@@ -45,18 +45,32 @@ const wss = new WebSocketServer({ server });
 import { setWss, broadcast } from './services/socketService';
 setWss(wss);
 
-wss.on("connection", (ws) => {
-  console.log("New WebSocket client connected");
+wss.on("connection", (ws, req) => {
+  console.log("🟢 New WebSocket client connected", req.url);
 
   ws.on("message", (message) => {
-    console.log("Received:", message.toString());
+    try {
+      const data = JSON.parse(message.toString());
+      console.log("📨 Received WebSocket message:", data);
 
-    // Broadcast ke semua client
-    broadcast({ type: 'message', data: message.toString() });
+      if (data.type === 'auth') {
+        console.log("🔐 WebSocket client authenticated with token:", data.token);
+        // For now, just accept the connection
+        // In a real app, you'd verify the JWT token here
+      }
+    } catch (error) {
+      console.log("📨 Received raw WebSocket message:", message.toString());
+      // Backward compatibility - broadcast raw messages if needed
+      broadcast({ type: 'message', data: message.toString() });
+    }
   });
 
   ws.on("close", () => {
-    console.log("Client disconnected");
+    console.log("🔴 Client disconnected");
+  });
+
+  ws.on("error", (error) => {
+    console.error("WebSocket error:", error);
   });
 });
 

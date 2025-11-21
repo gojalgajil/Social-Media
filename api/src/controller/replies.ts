@@ -105,8 +105,30 @@ class ReplyController {
   async getRepliesByThread(req: Request, res: Response) {
     try {
       const { threadId } = req.params;
+      const authUser = (req as any).user;
 
-      const replies = await ThreadReplyModel.findByThreadId(parseInt(threadId));
+      const rawReplies = await ThreadReplyModel.findByThreadId(parseInt(threadId));
+
+      const replies = await Promise.all(
+        rawReplies.map(async (r: any) => {
+          const likes = await prisma.likes.count({
+            where: { reply_id: r.id },
+          });
+
+          const isLiked = await prisma.likes.findFirst({
+            where: {
+              reply_id: r.id,
+              user_id: authUser?.id,
+            },
+          });
+
+          return {
+            ...r,
+            likesCount: likes,
+            isLiked: Boolean(isLiked),
+          };
+        })
+      );
 
       res.status(200).json({
         success: true,
@@ -237,6 +259,67 @@ class ReplyController {
       res.status(500).json({
         success: false,
         message: 'Error deleting reply',
+        error: (error as Error).message,
+      });
+    }
+  }
+
+  // Toggle like / unlike for reply
+  async toggleLike(req: Request, res: Response) {
+    try {
+      const replyId = parseInt(req.params.id);
+      const authUser = (req as any).user;
+
+      if (!authUser) {
+        return res.status(401).json({
+          success: false,
+          message: "Unauthorized",
+        });
+      }
+
+      const userId = authUser.id;
+
+      // cek apakah user sudah like reply
+      const existingLike = await prisma.likes.findFirst({
+        where: {
+          reply_id: replyId,
+          user_id: userId,
+        },
+      });
+
+      // Kalau SUDAH LIKE → UNLIKE
+      if (existingLike) {
+        await prisma.likes.delete({
+          where: { id: existingLike.id },
+        });
+
+        return res.status(200).json({
+          success: true,
+          liked: false,
+          message: "Unliked",
+        });
+      }
+
+      // Kalau BELUM LIKE → CREATE LIKE
+      await prisma.likes.create({
+        data: {
+          reply_id: replyId,
+          user_id: userId,
+          created_by: String(userId),
+          updated_by: String(userId),
+        },
+      });
+
+      return res.status(200).json({
+        success: true,
+        liked: true,
+        message: "Liked",
+      });
+
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Error toggling like",
         error: (error as Error).message,
       });
     }

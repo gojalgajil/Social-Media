@@ -22,7 +22,7 @@ interface ThreadUser {
   photo_profile?: string;
 }
 
-export default function ReplyList({ replies, threadUser }: { replies: Reply[]; threadUser: ThreadUser }) {
+export default function ReplyList({ replies, threadUser, toggleLike }: { replies: Reply[]; threadUser: ThreadUser; toggleLike: (threadId: number, hasLiked: boolean) => Promise<void> }) {
   if (replies.length === 0) {
     return (
       <div className="py-8 text-center text-gray-500">
@@ -34,7 +34,7 @@ export default function ReplyList({ replies, threadUser }: { replies: Reply[]; t
   return (
     <div className="w-full">
       {replies.map((reply) => (
-        <ReplyCard key={reply.id} reply={reply} threadUser={threadUser} />
+        <ReplyCard key={reply.id} reply={reply} threadUser={threadUser} toggleLike={toggleLike} />
       ))}
     </div>
   );

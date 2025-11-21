@@ -35,4 +35,8 @@ router.put('/:id', authenticate, repliesController.updateReply);
 // Delete reply (protected)
 router.delete('/:id', authenticate, repliesController.deleteReply);
 
+// Toggle like for reply (protected)
+router.post('/:id/like', authenticate, repliesController.toggleLike);
+router.put('/:id/like', authenticate, repliesController.toggleLike);
+router.delete('/:id/like', authenticate, repliesController.toggleLike);
 export default router;

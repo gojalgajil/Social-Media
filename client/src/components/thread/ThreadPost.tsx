@@ -1,10 +1,11 @@
 import { useState, useImperativeHandle, forwardRef, useEffect } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import PostModal from "./PostModal";
+import { useSelector } from 'react-redux';
 
 interface CreateThreadProps {
   token: string;
-  onThreadCreated: (newThread: any) => void;
+  onThreadCreated?: (newThread: any) => void;
   userAvatar?: string;
   showBottomDisplay?: boolean;
   modalKey?: number;
@@ -20,6 +21,8 @@ const CreateThreadComponent = forwardRef<CreateThreadRef, CreateThreadProps>(
     const [image, setImage] = useState<File | null>(null);
     const [loading, setLoading] = useState(false);
     const [openModal, setOpenModal] = useState(false);
+    const currentUser = useSelector((state: any) => state.user.currentUser);
+    const [imagePreview, setImagePreview] = useState<string | null>(null);
 
     useImperativeHandle(ref, () => ({
       openModal: () => setOpenModal(true),
@@ -32,11 +35,18 @@ const CreateThreadComponent = forwardRef<CreateThreadRef, CreateThreadProps>(
       }
     }, [modalKey]);
 
-  const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setImage(e.target.files[0]);
-    }
-  };
+    const removeImage = () => {
+      setImagePreview(null);
+      setImage(null);
+    };
+
+    const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files && e.target.files[0]) {
+        const file = e.target.files[0];
+        setImage(file);
+        setImagePreview(URL.createObjectURL(file));
+      }
+    };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -54,9 +64,12 @@ const CreateThreadComponent = forwardRef<CreateThreadRef, CreateThreadProps>(
 
     const data = await res.json();
     if (res.ok) {
-      onThreadCreated(data.data);
+      if (onThreadCreated) {
+        onThreadCreated(data.data);
+      }
       setContent("");
       setImage(null);
+      setImagePreview(null);
       setOpenModal(false); // tutup modal setelah post
     }
   };
@@ -70,19 +83,40 @@ const CreateThreadComponent = forwardRef<CreateThreadRef, CreateThreadProps>(
     {/* AVATAR + TEXTAREA */}
     <div className="flex gap-3">
       <img
-        src={userAvatar || "https://via.placeholder.com/40"}
-        className="w-10 h-10 rounded-full object-cover "
+        src={
+          currentUser?.user?.photo_profile
+            ? `http://localhost:3002/uploads/${currentUser.user.photo_profile}`
+            : "https://cdn.pixabay.com/photo/2023/02/18/11/00/icon-7797704_640.png"
+        }
+        className="h-8 w-8 rounded-full object-cover"
+        alt="profile"
       />
-
-      <textarea
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        placeholder="What is happening?!"
-        className="flex-1 bg-transparent text-blue-950 text-lg outline-none resize-none  placeholder-blue-950"
-        autoFocus
-      />
-
+      <div>
+        <textarea
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          placeholder="What is happening?!"
+          className="flex-1 bg-transparent text-blue-950 text-lg outline-none resize-none  placeholder-blue-950"
+          autoFocus
+        />
+      </div>
     </div>
+        {imagePreview && (
+      <div className="relative mt-2 inline-block w-fit overflow-hidden">
+        <img
+          src={imagePreview}
+          alt="Preview"
+          className="rounded-lg max-h-40 object-cover"
+        />
+        
+        <button
+          onClick={removeImage}
+          className="absolute top-1 cursor-pointer right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center"
+        >
+          ×
+        </button>
+      </div>
+    )}
 
     {/* ACTION BAR */}
     <div className="flex items-center justify-between mt-2 border-t pt-3">
@@ -124,9 +158,14 @@ const CreateThreadComponent = forwardRef<CreateThreadRef, CreateThreadProps>(
       {/* ini buat tampilan sebelum diklik */}
       {showBottomDisplay && <div className="border-b p-4 flex gap-3">
         <img
-          src={userAvatar || "https://via.placeholder.com/40"}
-          className="w-10 h-10 rounded-full object-cover"
-        />
+        src={
+          currentUser?.user?.photo_profile
+            ? `http://localhost:3002/uploads/${currentUser.user.photo_profile}`
+            : "https://cdn.pixabay.com/photo/2023/02/18/11/00/icon-7797704_640.png"
+        }
+        className="h-8 w-8 rounded-full object-cover"
+        alt="profile"
+      />
 
         {/* textarea palsu (untuk buka modal) */}
         <div className="flex-1 flex flex-col">

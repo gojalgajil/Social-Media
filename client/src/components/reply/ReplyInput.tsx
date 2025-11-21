@@ -9,8 +9,6 @@ interface ReplyInputProps {
 }
 
 export default function ReplyInput({
-  threadId,
-  userAvatar,
   onReplySubmit,
 }: ReplyInputProps) {
   const [content, setContent] = useState("");
@@ -86,7 +84,7 @@ export default function ReplyInput({
             />
             <button
               onClick={removeImage}
-              className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center"
+              className="absolute top-1 cursor-pointer right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center"
             >
               ×
             </button>

@@ -62,7 +62,8 @@ model Replies{
 model Likes{
   id              Int     @id @default(autoincrement())
   user_id         Int
-  thread_id       Int
+  thread_id       Int?
+  reply_id        Int?
   created_at      DateTime @default(now())
   created_by      String
   updated_at      DateTime @default(now())

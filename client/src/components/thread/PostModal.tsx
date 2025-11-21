@@ -10,7 +10,7 @@ export default function PostModal({ open, onClose, children }: PostModalProps) {
   if (!open) return null;
 
   const modal = (
-    <div className="fixed inset-0 bg-black/50 flex items-start justify-center pt-24 z-[9999]">
+    <div className="fixed inset-0 bg-black/50 flex items-start justify-center pt-24">
       <div className="bg-blue-300 rounded-xl p-4 w-full max-w-lg relative">
 
         {/* CLOSE BUTTON */}

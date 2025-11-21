@@ -25,9 +25,11 @@ interface Reply {
 export default function ReplyCard({
   reply,
   threadUser,
+  toggleLike,
 }: {
   reply: Reply;
   threadUser: ThreadUser;
+  toggleLike: (threadId: number, hasLiked: boolean) => Promise<void>;
 }) {
   return (
     <div className="border-b border-blue-950 py-4 px-2 flex gap-4">
@@ -70,6 +72,7 @@ export default function ReplyCard({
             className={`flex items-center gap-2 cursor-pointer transition hover:text-red-400 ${
               reply.isLiked ? "text-red-500" : "text-gray-400"
             }`}
+            onClick={() => toggleLike(reply.id, reply.isLiked || false)}
           >
             <Heart
               size={18}

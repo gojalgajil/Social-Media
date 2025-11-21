@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchRepliesByThread, toggleReplyLike, addReply } from "@/stores/repliesSlice";
 import ThreadCard from "@/components/thread/ThreadCard";
 import ReplyInput from "@/components/reply/ReplyInput";
 import ReplyList from "@/components/reply/ReplyList";
@@ -25,35 +27,22 @@ interface ThreadUser {
   photo_profile?: string;
 }
 
-interface Reply {
-  id: number;
-  content: string;
-  image?: string;
-  created_at: string;
-  likesCount?: number;
-  isLiked?: boolean;
-  user?: {
-    id: number;
-    full_name: string;
-    username: string;
-    photo_profile?: string;
-  };
-}
-
 export default function ThreadDetailPage() {
   const { threadId } = useParams<{ threadId: string }>();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const { replies, loading: repliesLoading, error } = useSelector((state: any) => state.replies);
   const [thread, setThread] = useState<Thread | null>(null);
-  const [replies, setReplies] = useState<Reply[]>([]);
   const [loading, setLoading] = useState(true);
   const [userAvatar, setUserAvatar] = useState<string>("");
 
 
   useEffect(() => {
     if (threadId) {
-      fetchThreadAndReplies();
+      fetchThread();
+      dispatch(fetchRepliesByThread(threadId));
     }
-  }, [threadId]);
+  }, [threadId, dispatch]);
 
   useEffect(() => {
     let userAvatarUrl = "";
@@ -71,10 +60,9 @@ export default function ThreadDetailPage() {
     setUserAvatar(userAvatarUrl);
   }, []);
 
-  const fetchThreadAndReplies = async () => {
+  const fetchThread = async () => {
     try {
       setLoading(true);
-
       // Fetch thread detail
       const threadRes = await fetch(
         `http://localhost:3002/api/threads/${threadId}`,
@@ -86,22 +74,8 @@ export default function ThreadDetailPage() {
       );
       const threadData = await threadRes.json();
       setThread(threadData.data);
-
-      // Fetch replies
-      const repliesRes = await fetch(
-        `http://localhost:3002/api/replies/thread/${threadId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
-      const repliesData = await repliesRes.json();
-      setReplies(repliesData.data || []);
-
-
     } catch (error) {
-      console.error("Error fetching data:", error);
+      console.error("Error fetching thread:", error);
     } finally {
       setLoading(false);
     }
@@ -128,8 +102,8 @@ export default function ThreadDetailPage() {
 
       if (response.ok) {
         const data = await response.json();
-        // Add the new reply to the list without refetching
-        setReplies((prevReplies) => [...prevReplies, data.data]);
+        // Add new reply to Redux store
+        dispatch(addReply(data.data));
       }
     } catch (error) {
       console.error("Error submitting reply:", error);
@@ -137,12 +111,20 @@ export default function ThreadDetailPage() {
     }
   };
 
-  const toggleLike = async (threadId: number, hasLiked: boolean) => {
-    // Implementasi toggle like untuk thread
-    // Sesuaikan dengan API endpoint kamu
-    console.log("Toggle like:", threadId, hasLiked);
+  const toggleLike = async (replyId: number, isLiked: boolean) => {
+    try {
+      // Dispatch Redux action to toggle like, which will also refetch replies
+      await dispatch(toggleReplyLike({ replyId, currentIsLiked: isLiked }));
+      // Refetch replies after toggle to get updated data
+      if (threadId) {
+        dispatch(fetchRepliesByThread(threadId));
+      }
+    } catch (error) {
+      console.error('Error toggling like:', error);
+    }
   };
 
+    
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -185,7 +167,7 @@ export default function ThreadDetailPage() {
       />
 
       {/* Reply List */}
-      <ReplyList replies={replies} threadUser={threadUser} />
+      <ReplyList replies={replies} threadUser={threadUser} toggleLike={toggleLike} />
     </div>
   );
 }

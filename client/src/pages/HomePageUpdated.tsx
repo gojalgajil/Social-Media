@@ -23,7 +23,8 @@ export default function HomePage() {
     }
   }, [token, dispatch]);
 
-  // LIKE / UNLIKE
+
+
   const toggleLike = async (threadId: number, isLiked: boolean) => {
     await dispatch(toggleThreadLike({ threadId, currentIsLiked: isLiked }));
   };

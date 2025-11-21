@@ -3,7 +3,7 @@ import './App.css'
 import { AuthProvider } from './context/AuthProvider'
 import Register from './pages/Register'
 import Login from './pages/Login'
-import HomePage from './pages/HomePage'
+import HomePage from './pages/HomePageUpdated'
 import Status from './pages/Status'
 
 // Layout
@@ -23,28 +23,29 @@ function AppWrapper() {
   const token = useSelector((state: any) => state.user.token)
     || localStorage.getItem("token");
 
-  // AUTO FETCH USER
-  useEffect(() => {
-    const fetchUser = async () => {
-      if (!token) return;
+// AUTO FETCH USER
+useEffect(() => {
+  const fetchUser = async () => {
+    if (!token) return;
 
-      try {
-        const res = await axios.get("http://localhost:3002/api/user/me", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+    try {
+      const res = await axios.get("http://localhost:3002/api/user/me", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        withCredentials: true,   // ⬅ WAJIB DITAMBAH
+      });
 
-        dispatch(setUser({ user: res.data, token }));
-        localStorage.setItem("currentUser", JSON.stringify(res.data));
+      dispatch(setUser({ user: res.data, token }));
+      localStorage.setItem("currentUser", JSON.stringify(res.data));
 
-      } catch (err) {
-        console.error("Failed to auto fetch user:", err);
-      }
-    };
+    } catch (err) {
+      console.error("Failed to auto fetch user:", err);
+    }
+  };
 
-    fetchUser();
-  }, [token]);
+  fetchUser();
+}, [token]);
 
   // Cek apakah halaman login/register
   const authPages = ["/login", "/register"]

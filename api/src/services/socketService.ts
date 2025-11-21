@@ -16,3 +16,26 @@ export const broadcast = (data: any) => {
     }
   });
 };
+
+// Broadcast specific event types with data
+export const broadcastNewThread = (threadData: any) => {
+  console.log('Broadcasting new thread:', threadData);
+  broadcast({
+    type: 'new_thread',
+    data: threadData
+  });
+};
+
+export const broadcastNewReply = (replyData: any) => {
+  broadcast({
+    type: 'NEW_REPLY',
+    data: replyData
+  });
+};
+
+export const broadcastLikeUpdate = (updateData: any) => {
+  broadcast({
+    type: 'LIKE_UPDATE',
+    data: updateData
+  });
+};
