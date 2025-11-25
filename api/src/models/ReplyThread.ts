@@ -36,7 +36,7 @@ class ThreadReplyModel {
   }
 
   // Get all replies for a specific thread with user info
-  async findByThreadId(threadId: number) {
+  async findByThreadId(threadId: number, authUser: any) {
     const replies = await prisma.replies.findMany({
       where: {
         thread_id: threadId,
@@ -59,13 +59,18 @@ class ThreadReplyModel {
           },
         });
 
+        // Ensure full_name is set to username if null
+        if (user) {
+          user.full_name = user.full_name || user.username || "User";
+        }
+
         return {
           id: reply.id,
           content: reply.content,
           image: reply.image,
           photo_profile: reply.photo_profile,
           created_at: reply.created_at,
-          user: user || null,
+          user: (reply.user_id === authUser?.id ? authUser : user) || null,
         };
       })
     );

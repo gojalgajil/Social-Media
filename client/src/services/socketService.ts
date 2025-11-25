@@ -65,9 +65,6 @@ const handleRealTimeUpdate = (data: any) => {
           ...threadData,
           likesCount: 0,
           isLiked: false,
-          full_name: threadData.user?.full_name,
-          username: threadData.user?.username,
-          avatar: threadData.user?.photo_profile
         }
       });
       break;

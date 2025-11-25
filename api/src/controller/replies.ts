@@ -107,7 +107,7 @@ class ReplyController {
       const { threadId } = req.params;
       const authUser = (req as any).user;
 
-      const rawReplies = await ThreadReplyModel.findByThreadId(parseInt(threadId));
+    const rawReplies = await ThreadReplyModel.findByThreadId(parseInt(threadId), authUser);
 
       const replies = await Promise.all(
         rawReplies.map(async (r: any) => {

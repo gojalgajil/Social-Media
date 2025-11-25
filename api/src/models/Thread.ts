@@ -53,6 +53,11 @@ class ThreadModel {
           },
         });
 
+        // Ensure full_name is set to username if null
+        if (user) {
+          user.full_name = user.full_name || user.username || "User";
+        }
+
         return {
           id: thread.id,
           content: thread.content,

@@ -50,6 +50,7 @@ export default function HomePage() {
       <ThreadPost
         token={token!}
         userAvatar={currentUser?.photo_profile ? `http://localhost:3002/uploads/${currentUser.photo_profile}` : undefined}
+        onThreadCreated={(newThread) => dispatch({ type: 'threads/addThread', payload: { ...newThread, likesCount: 0, isLiked: false } })}
       />
 
       {/* Content */}

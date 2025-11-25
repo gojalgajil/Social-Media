@@ -179,7 +179,9 @@ const threads = await Promise.all(
       image: newThread.image,
       number_of_replies: newThread.number_of_replies,
       created_at: newThread.created_at,
-      user: user || null,
+      full_name: user?.full_name,
+      username: user?.username || "user",
+      avatar: user?.photo_profile || null,
     };
 
     broadcast({ type: 'new_thread', thread: enrichedThread });
