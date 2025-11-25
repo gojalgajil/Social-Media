@@ -23,10 +23,39 @@ export default function HomePage() {
     }
   }, [token, dispatch]);
 
-
-
   const toggleLike = async (threadId: number, isLiked: boolean) => {
-    await dispatch(toggleThreadLike({ threadId, currentIsLiked: isLiked }));
+    // Find the current thread to get likesCount
+    const thread = threads.find((t: any) => t.id === threadId);
+    if (!thread) return;
+
+    const currentLikesCount = thread.likesCount || 0;
+    const newIsLiked = !isLiked;
+    const newLikesCount = isLiked ? currentLikesCount - 1 : currentLikesCount + 1;
+
+    // Optimistic update
+    dispatch({
+      type: 'threads/updateThreadLikeStatus',
+      payload: {
+        id: threadId,
+        isLiked: newIsLiked,
+        likesCount: newLikesCount
+      }
+    });
+
+    try {
+      await dispatch(toggleThreadLike({ threadId, currentIsLiked: isLiked }));
+    } catch (error) {
+      // Revert on error
+      dispatch({
+        type: 'threads/updateThreadLikeStatus',
+        payload: {
+          id: threadId,
+          isLiked: isLiked,
+          likesCount: currentLikesCount
+        }
+      });
+      console.error('Failed to toggle like:', error);
+    }
   };
 
   // Jika belum login

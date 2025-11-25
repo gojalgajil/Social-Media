@@ -8,6 +8,8 @@ interface AuthResponse {
   full_name: string;
   email: string;
   photo_profile: string | null;
+  header: string | null;
+  bio: string | null;
   token: string;
 }
 
@@ -60,6 +62,8 @@ export const registerUser = async (
   full_name: user.full_name,
   email: user.email,
   photo_profile: user.photo_profile ? `${process.env.BASE_URL}/uploads/${user.photo_profile}` : null,
+  header: user.header,
+  bio: user.bio,
   token
 };
 };
@@ -83,6 +87,8 @@ export async function loginUser(email: string, password: string): Promise<AuthRe
     full_name: user.full_name,
     email: user.email,
     photo_profile: user.photo_profile ? `${process.env.BASE_URL}/uploads/${user.photo_profile}` : null,
+    header: user.header,
+    bio: user.bio,
     token
   };
 }

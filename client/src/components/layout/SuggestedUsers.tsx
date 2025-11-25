@@ -9,26 +9,26 @@ const data = [
 
 
 return (
-<div className="bg-blue-500 rounded-2xl p-4 mt-4 shadow">
-<h3 className="font-bold text-blue-950 text-lg mb-3">Suggested for you</h3>
-<div className="flex flex-col gap-3">
+<div className="bg-blue-500 rounded-lg p-2 shadow">
+<h3 className="font-bold text-blue-950 text-sm mb-2">Suggested for you</h3>
+<div className="flex flex-col gap-1">
 {data.map((user) => (
 <div
 key={user.username}
-className="flex justify-between items-center hover:bg-blue-300 p-2 rounded-xl cursor-pointer"
+className="flex justify-between items-center hover:bg-blue-300 p-1 rounded-lg cursor-pointer"
 >
-<div className="flex items-center gap-2">
+<div className="flex items-center gap-1">
 <img
 src={user.img}
 alt={user.name}
-className="w-8 h-8 rounded-full"
+className="w-6 h-6 rounded-full"
 />
 <div>
-<p className="font-medium">{user.name}</p>
-<p className="text-sm text-white">{user.username}</p>
+<p className="font-medium text-xs">{user.name}</p>
+<p className="text-xs text-white">{user.username}</p>
 </div>
 </div>
-<button className="bg-white text-blue-950 px-3 py-1 cursor-pointer rounded-full text-sm font-semibold">
+<button className="bg-white text-blue-950 px-2 py-1 cursor-pointer rounded-full text-xs font-semibold">
 Follow
 </button>
 </div>

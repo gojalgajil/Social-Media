@@ -7,9 +7,12 @@ interface User {
   full_name: string;
   email: string;
   photo_profile: string | null;
+  header: string | null;
+  bio: string | null;
 }
 
 interface UserState {
+  user: User | null;
   currentUser: User | null;
   token: string | null;
   isAuthenticated: boolean;
@@ -18,6 +21,7 @@ interface UserState {
 const tokenFromStorage = localStorage.getItem("token");
 
 const initialState: UserState = {
+  user: null,
   currentUser: null,
   token: tokenFromStorage || null,
   isAuthenticated: tokenFromStorage ? true : false,
@@ -28,9 +32,10 @@ const userSlice = createSlice({
   initialState,
   reducers: {
     setUser: (
-      state, 
+      state,
       action: PayloadAction<{ user: User; token?: string }>
     ) => {
+      state.user = action.payload.user;
       state.currentUser = action.payload.user;
 
       // only update token if given
@@ -43,6 +48,7 @@ const userSlice = createSlice({
     },
 
     logout: (state) => {
+      state.user = null;
       state.currentUser = null;
       state.token = null;
       state.isAuthenticated = false;

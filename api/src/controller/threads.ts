@@ -53,19 +53,40 @@ const threads = await Promise.all(
   // Get thread by ID
   async getThreadById(req: Request, res: Response) {
     try {
+      const authUser = (req as any).user;
       const { id } = req.params;
-      const thread = await ThreadModel.findById(parseInt(id));
 
-      if (!thread) {
+      const rawThread = await ThreadModel.findById(parseInt(id));
+
+      if (!rawThread) {
         return res.status(404).json({
           success: false,
           message: 'Thread not found',
         });
       }
 
+      // Count likes
+      const likes = await prisma.likes.count({
+        where: { thread_id: parseInt(id) },
+      });
+
+      // Check if current user liked
+      const isLiked = await prisma.likes.findFirst({
+        where: {
+          thread_id: parseInt(id),
+          user_id: authUser?.id,
+        },
+      });
+
+      const threadData = {
+        ...rawThread,
+        likesCount: likes,
+        isLiked: Boolean(isLiked),
+      };
+
       res.status(200).json({
         success: true,
-        data: thread,
+        data: threadData,
       });
     } catch (error) {
       res.status(500).json({
@@ -333,7 +354,11 @@ async toggleLike(req: Request, res: Response) {
         where: { id: existingLike.id },
       });
 
-      broadcast({ type: 'like_update', threadId, liked: false });
+      const likesCount = await prisma.likes.count({
+        where: { thread_id: threadId },
+      });
+
+    broadcast({ type: 'like_update', threadId, userId, liked: false, likesCount });
 
       return res.status(200).json({
         success: true,
@@ -352,7 +377,11 @@ async toggleLike(req: Request, res: Response) {
       },
     });
 
-    broadcast({ type: 'like_update', threadId, liked: true });
+    const likesCount = await prisma.likes.count({
+      where: { thread_id: threadId },
+    });
+
+    broadcast({ type: 'like_update', threadId, userId, liked: true, likesCount });
 
     return res.status(200).json({
       success: true,

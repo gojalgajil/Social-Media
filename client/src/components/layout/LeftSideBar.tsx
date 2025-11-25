@@ -41,9 +41,9 @@ export default function LeftSidebar() {
   };
 
   return (
-    <aside className="h-screen w-75 p-6 flex flex-col gap-6 bg-blue-300 text-white 
+    <aside className="h-screen w-60 p-4 flex flex-col bg-blue-300 text-white
   fixed left-0 top-0 overflow-y-auto">
-      <img src={logo} alt="Circle Hub Logo" className=" mb-4 h-25" />
+      <img src={logo} alt="Circle Hub Logo" className=" mb-4 h-20" />
 
       <nav className="flex flex-col gap-2">
         {navItems.map((item) => {
@@ -66,7 +66,7 @@ export default function LeftSidebar() {
       </nav>
 
       <label
-        className="cursor-pointer bg-green-500 text-blue-950 hover:bg-white font-semibold text-lg px-6 py-3 rounded-xl text-center"
+        className="mt-4 cursor-pointer bg-green-500 text-blue-950 hover:bg-white font-semibold text-lg py-1 rounded-2xl text-center "
         onClick={handleCreatePost}
       >
         Create Post

@@ -51,6 +51,8 @@ export default function Login() {
             full_name: data.full_name,
             email: data.email,
             photo_profile: data.photo_profile,
+            header: data.header,
+            bio: data.bio,
           },
           token: data.token,
         })
@@ -65,6 +67,8 @@ export default function Login() {
           full_name: data.full_name,
           email: data.email,
           photo_profile: data.photo_profile,
+          header: data.header,
+          bio: data.bio,
         })
       );
       localStorage.setItem("token", data.token);

@@ -30,18 +30,47 @@ const initialState: ThreadsState = {
 export const fetchThreads = createAsyncThunk(
   'threads/fetchAll',
   async () => {
-    const response = await fetch('http://localhost:3002/api/threads', {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-    });
+    try {
+      const response = await fetch('http://localhost:3002/api/threads', {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
 
-    if (!response.ok) {
-      throw new Error('Failed to fetch threads');
+      if (!response.ok) {
+        throw new Error('Failed to fetch threads');
+      }
+
+      const data = await response.json();
+      return data.data || [];
+    } catch (error) {
+      console.error('Error in fetchThreads:', error);
+      throw error;
     }
+  }
+);
 
-    const data = await response.json();
-    return data.data || [];
+// Async thunk untuk fetch single thread by id
+export const fetchSingleThread = createAsyncThunk(
+  'threads/fetchSingle',
+  async (id: number) => {
+    try {
+      const response = await fetch(`http://localhost:3002/api/threads/${id}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch thread with id ${id}`);
+      }
+
+      const data = await response.json();
+      return data.data;
+    } catch (error) {
+      console.error('Error in fetchSingleThread:', error);
+      throw error;
+    }
   }
 );
 
@@ -49,19 +78,24 @@ export const fetchThreads = createAsyncThunk(
 export const toggleThreadLike = createAsyncThunk(
   'threads/toggleLike',
   async ({ threadId, currentIsLiked }: { threadId: number; currentIsLiked: boolean }) => {
-    const response = await fetch(`http://localhost:3002/api/threads/${threadId}/like`, {
-      method: "PUT",
-      headers: {
-        "Authorization": `Bearer ${localStorage.getItem("token")}`,
-        "Content-Type": "application/json",
-      },
-    });
+    try {
+      const response = await fetch(`http://localhost:3002/api/threads/${threadId}/like`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("token")}`,
+          "Content-Type": "application/json",
+        },
+      });
 
-    if (!response.ok) {
-      throw new Error('Failed to toggle like');
+      if (!response.ok) {
+        throw new Error('Failed to toggle like');
+      }
+
+      return { threadId };
+    } catch (error) {
+      console.error('Error in toggleThreadLike:', error);
+      throw error;
     }
-
-    return { threadId };
   }
 );
 
@@ -77,7 +111,17 @@ const threadsSlice = createSlice({
     updateThread: (state, action: PayloadAction<Thread>) => {
       const index = state.threads.findIndex(thread => thread.id === action.payload.id);
       if (index !== -1) {
-        state.threads[index] = action.payload;
+        state.threads[index] = {
+          ...state.threads[index],
+          ...action.payload,
+        };
+      }
+    },
+    updateThreadLikeStatus: (state, action: PayloadAction<{ id: number; isLiked: boolean; likesCount: number }>) => {
+      const index = state.threads.findIndex(thread => thread.id === action.payload.id);
+      if (index !== -1) {
+        state.threads[index].isLiked = action.payload.isLiked;
+        state.threads[index].likesCount = action.payload.likesCount;
       }
     },
     clearThreads: (state) => {
@@ -100,19 +144,35 @@ const threadsSlice = createSlice({
         state.error = action.error.message || 'Failed to fetch threads';
       })
 
-      // toggleThreadLike
+      // toggleThreadLike - rely on optimistic updates and WebSocket for correct server state
       .addCase(toggleThreadLike.pending, (state) => {
         state.error = null;
       })
-      .addCase(toggleThreadLike.fulfilled, (state, action) => {
-        // Note: In a real-time app, this would typically be handled by socket events
-        // For now, we can refetch but ideally we'd get real-time updates
-      })
+      // Remove fulfilled case to avoid double-toggling with optimistic updates
       .addCase(toggleThreadLike.rejected, (state, action) => {
         state.error = action.error.message || 'Failed to toggle like';
+        // TODO: Revert optimistic update on error
+      })
+      .addCase(fetchSingleThread.fulfilled, (state, action) => {
+        const fetchedThread = action.payload;
+        if (!fetchedThread) return;
+        const index = state.threads.findIndex(thread => thread.id === fetchedThread.id);
+        if (index !== -1) {
+          state.threads[index] = {
+            ...state.threads[index],
+            ...fetchedThread,
+          };
+        } else {
+          // Add new thread if not in state
+          state.threads.unshift(fetchedThread);
+        }
       });
   },
 });
 
-export const { addThread, updateThread, clearThreads } = threadsSlice.actions;
+export const { addThread, updateThread, updateThreadLikeStatus, clearThreads } = threadsSlice.actions;
+
+export const selectThreads = (state: { threads: ThreadsState }) => state.threads.threads;
+export const getThreadById = (state: { threads: ThreadsState }, id: number) => state.threads.threads.find(thread => thread.id === id);
+
 export default threadsSlice.reducer;

@@ -21,6 +21,7 @@ model User{
   password        String
   photo_profile   String?
   bio             String?
+  header          String?
   created_at      DateTime @default(now())
   created_by      String
   updated_at      DateTime @default(now())

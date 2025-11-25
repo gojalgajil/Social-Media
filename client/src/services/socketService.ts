@@ -85,7 +85,27 @@ const handleRealTimeUpdate = (data: any) => {
       break;
 
     case 'like_update':
-      console.log('❤️ Like update received:', data.data);
+      console.log('❤️ Like update received:', data);
+      // Update the likes count for the thread
+      store.dispatch({
+        type: 'threads/updateThread',
+        payload: { id: data.threadId, likesCount: data.likesCount }
+      });
+
+      // Update isLiked if it's the current user who performed the action
+      const state = store.getState();
+      const currentUserId = state.user.currentUser?.id;
+      if (currentUserId && data.userId === currentUserId) {
+        store.dispatch({
+          type: 'threads/updateThreadLikeStatus',
+          payload: { id: data.threadId, isLiked: data.liked, likesCount: data.likesCount }
+        });
+      }
+
+      // If there's a global callback for like update (e.g., for Status page)
+      if ((window as any).likeUpdateCallback) {
+        (window as any).likeUpdateCallback(data);
+      }
       break;
 
     default:
