@@ -1,24 +1,24 @@
 import { useState } from 'react';
 import { useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
 import ProfileModal from '../profile/ProfileModal';
 import EditProfile from '../profile/EditProfile';
 
 export function ProfileCard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const navigate = useNavigate();
   const currentUser = useSelector((state: any) => state.user.currentUser);
 
-  const handleEditProfile = () => {
-    setIsModalOpen(true);
-  };
+  const user = currentUser?.user; // singkat dan aman
 
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-  };
+  const handleEditProfile = () => setIsModalOpen(true);
+  const handleCloseModal = () => setIsModalOpen(false);
 
-  console.log('header value:', currentUser?.user.header)
-  console.log('currentUser:', currentUser);
+  const headerSrc = user?.header
+    ? `http://localhost:3002/uploads/${user.header}`
+    : "https://cdn.pixabay.com/photo/2023/02/18/11/00/icon-7797704_640.png";
+
+  const profileSrc = user?.photo_profile
+    ? `http://localhost:3002/uploads/${user.photo_profile}`
+    : "https://cdn.pixabay.com/photo/2023/02/18/11/00/icon-7797704_640.png";
 
   return (
     <>
@@ -27,39 +27,26 @@ export function ProfileCard() {
           <h2 className="text-blue-950 font-semibold text-sm">My Profile</h2>
         </div>
 
-        {/* Header with gradient background or user banner */}
-        <div
-          className="relative mx-3 h-20 rounded-lg"
-          style={{
-            background: 'linear-gradient(to right, #86efac, #fef08a, #fef08a)'
-          }}
-        >
-          
+        {/* Header */}
+        <div className="relative mx-3 h-20 rounded-lg">
+          <img
+            src={headerSrc}
+            className="w-full h-full object-cover rounded-lg"
+            alt="Header"
+          />
+
+          {/* Profile photo */}
+          <div className="absolute -bottom-8 left-3">
             <img
-              src={
-                currentUser?.user?.header
-               ? `http://localhost:3002/uploads/${currentUser.user.header}`
-                : "https://cdn.pixabay.com/photo/2023/02/18/11/00/icon-7797704_640.png"}
-              className="w-full h-full object-cover rounded-lg"
-              alt="Header"
-            />
-          
-          {/* Profile picture - positioned to overlap header */}
-          <div className="absolute -bottom-7 left-3">
-            <img
-              src={
-                currentUser?.user?.photo_profile
-                  ? `http://localhost:3002/uploads/${currentUser.user.photo_profile}`
-                  : "https://cdn.pixabay.com/photo/2023/02/18/11/00/icon-7797704_640.png"
-              }
+              src={profileSrc}
               className="w-17 h-17 rounded-full object-cover border-3 border-blue-500"
               alt="Profile"
             />
           </div>
         </div>
 
-        {/* Edit Profile button below header */}
-        <div className="mx-3 mb-2 flex justify-end">
+        {/* Edit Button */}
+        <div className="mx-3 flex justify-end">
           <button
             className="px-3 mt-2 py-1 bg-blue-800 text-white cursor-pointer text-xs rounded-lg hover:bg-blue-700 transition"
             onClick={handleEditProfile}
@@ -68,19 +55,18 @@ export function ProfileCard() {
           </button>
         </div>
 
-        {/* Profile info */}
+        {/* User Info */}
         <div className="px-3 pb-3">
-          <div className="flex items-center gap-1 mb-1">
-            <h3 className="font-bold text-blue-950 text-sm">{currentUser?.user?.full_name || 'Name'}</h3>
-          </div>
+          <h3 className="font-bold text-blue-950 text-sm">
+            {user?.full_name || "Name"}
+          </h3>
 
-          <p className="text-white text-xs mb-2">@{currentUser?.user?.username || 'username'}</p>
+          <p className="text-white text-xs mb-2">@{user?.username || "username"}</p>
 
           <p className="text-blue-950 text-xs mb-2">
-            {currentUser?.user?.bio || 'Bio goes here'}
+            {user?.bio || "Bio goes here"}
           </p>
 
-          {/* Stats */}
           <div className="flex items-center gap-3 text-xs">
             <div>
               <span className="text-blue-950 font-bold">291</span>

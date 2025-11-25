@@ -142,6 +142,12 @@ export default function ThreadDetailPage() {
         const data = await response.json();
         // Add new reply to Redux store
         dispatch(addReply(data.data));
+
+        // Optimistically update the thread's reply count
+        setThread(prev => prev ? {
+          ...prev,
+          number_of_replies: (prev.number_of_replies || 0) + 1
+        } : null);
       }
     } catch (error) {
       console.error("Error submitting reply:", error);

@@ -91,7 +91,7 @@ export default function ReplyInput({
           </div>
         )}
 
-        <div className="flex items-center gap-3 mt-3">
+        <div className="flex items-center gap-3">
           <label className="cursor-pointer text-blue-500 hover:text-blue-600">
             <Image size={20} />
             <input
@@ -105,10 +105,9 @@ export default function ReplyInput({
           <button
             onClick={handleSubmit}
             disabled={(!content.trim() && !image) || isSubmitting}
-            className="ml-auto px-6 py-2 bg-green-500 text-white rounded-full hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="ml-auto px-4 text-sm font-bold py-1 bg-green-500 text-white rounded-full hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {isSubmitting ? "Sending..." : "Reply"}
-            <Send size={16} />
           </button>
         </div>
       </div>

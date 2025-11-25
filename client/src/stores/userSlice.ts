@@ -12,8 +12,8 @@ interface User {
 }
 
 interface UserState {
-  user: User | null;
-  currentUser: User | null;
+  user: Partial<User> | null;        // ← diperbaiki
+  currentUser: Partial<User> | null; // ← diperbaiki
   token: string | null;
   isAuthenticated: boolean;
 }
@@ -24,7 +24,7 @@ const initialState: UserState = {
   user: null,
   currentUser: null,
   token: tokenFromStorage || null,
-  isAuthenticated: tokenFromStorage ? true : false,
+  isAuthenticated: !!tokenFromStorage,
 };
 
 const userSlice = createSlice({
@@ -33,12 +33,18 @@ const userSlice = createSlice({
   reducers: {
     setUser: (
       state,
-      action: PayloadAction<{ user: User; token?: string }>
+      action: PayloadAction<{ user: Partial<User>; token?: string }>
     ) => {
-      state.user = action.payload.user;
-      state.currentUser = action.payload.user;
+      state.user = {
+        ...state.user,
+        ...action.payload.user,
+      };
 
-      // only update token if given
+      state.currentUser = {
+        ...state.currentUser,
+        ...action.payload.user,
+      };
+
       if (action.payload.token) {
         state.token = action.payload.token;
         localStorage.setItem("token", action.payload.token);
