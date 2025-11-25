@@ -21,6 +21,7 @@ router.get('/me', authenticate, async (req, res) => {
         email: true,
         photo_profile: true,
         bio: true,
+        header: true,
         created_at: true,
         created_by: true,
         updated_at: true,

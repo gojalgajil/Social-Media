@@ -196,7 +196,7 @@ const CreateThreadComponent = forwardRef<CreateThreadRef, CreateThreadProps>(
                 </svg>
               </label>
 
-              <label className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-5 py-2 rounded-full">
+              <label className="bg-blue-600 text-sm hover:bg-blue-500 text-white font-bold px-5 py-1 rounded-full">
                 Post
               </label>
             </div>

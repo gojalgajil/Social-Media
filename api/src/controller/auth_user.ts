@@ -54,8 +54,9 @@ export async function handleUpdateUser(req: Request, res: Response) {
 
     const authUser = (req as any).user;
     const { full_name, username, bio } = req.body;
-    const photo_profile = req.files?.photo_profile ? req.files.photo_profile[0].filename : undefined;
-    const header = req.files?.header ? req.files.header[0].filename : undefined;
+    const files = (req as any).files;
+    const photo_profile = files?.photo_profile ? files.photo_profile[0].filename : undefined;
+    const header = files?.header ? files.header[0].filename : undefined;
 
     // Check username uniqueness if provided and changed
     if (username && username !== authUser.username) {
