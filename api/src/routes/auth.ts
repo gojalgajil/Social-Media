@@ -1,8 +1,9 @@
 import express from 'express';
 import multer from 'multer';
-import path from "path";
+import path from 'path';
 
-import { handleRegister, handleLogin } from '../controller/auth_user';
+import { handleRegister, handleLogin, handleUpdateUser } from '../controller/auth_user';
+import { authenticate } from '../middlewares/auth';
 
 const router = express.Router();
 
@@ -24,5 +25,9 @@ const upload = multer({ storage });
 
 router.post('/register', upload.single("photo_profile"), handleRegister);
 router.post('/login', handleLogin);
+router.put('/user', authenticate, upload.fields([
+  { name: 'photo_profile' },
+  { name: 'header' }
+]), handleUpdateUser);
 
 export default router;

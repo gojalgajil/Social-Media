@@ -1,4 +1,7 @@
 import express from "express";
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 import { authenticate } from "../middlewares/auth";
 import { prisma } from '../prisma/client';
 
