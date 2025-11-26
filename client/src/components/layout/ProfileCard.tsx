@@ -1,16 +1,138 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import ProfileModal from '../profile/ProfileModal';
 import EditProfile from '../profile/EditProfile';
+import FollowersFollowingModal from '../profile/FollowersFollowingModal';
+
 
 export function ProfileCard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const currentUser = useSelector((state: any) => state.user.currentUser);
-
-  const user = currentUser?.user; // singkat dan aman
+  const [followersFollowingModal, setFollowersFollowingModal] = useState<{
+    isOpen: boolean;
+    type: 'followers' | 'following' | null;
+  }>({
+    isOpen: false,
+    type: null
+  });
+  const [stats, setStats] = useState({ followers: 0, following: 0 });
+  const [loading, setLoading] = useState(true);
+  const [shouldRefreshStats, setShouldRefreshStats] = useState(false);
+  const user = useSelector((state: any) => state.user.user);
+  const token = useSelector((state: any) => state.user.token) || localStorage.getItem("token");
+  const navigate = useNavigate();
 
   const handleEditProfile = () => setIsModalOpen(true);
   const handleCloseModal = () => setIsModalOpen(false);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      if (!token || !user?.id) {
+        console.log("Missing token or user.id, skipping stats fetch");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        console.log("Fetching stats for user:", user.id);
+        const responses = await Promise.all([
+          fetch(`http://localhost:3002/api/user/${user.id}/followers`, {
+            headers: { Authorization: `Bearer ${token}` }
+          }),
+          fetch(`http://localhost:3002/api/user/${user.id}/following`, {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+        ]);
+
+        console.log("API responses status:", responses[0].status, responses[1].status);
+
+        const [followersData, followingData] = await Promise.all([
+          responses[0].ok ? responses[0].json() : Promise.resolve([]),
+          responses[1].ok ? responses[1].json() : Promise.resolve([])
+        ]);
+
+        console.log("Stats data:", {
+          followers: followersData.length,
+          following: followingData.length
+        });
+
+        setStats({
+          followers: Array.isArray(followersData) ? followersData.length : 0,
+          following: Array.isArray(followingData) ? followingData.length : 0
+        });
+      } catch (error) {
+        console.error("Error fetching stats on mount:", error);
+        setStats({ followers: 0, following: 0 });
+      } finally {
+        console.log("Setting loading to false after initial fetch");
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, [token, user?.id]);
+
+  // Listen for real-time following count updates
+  useEffect(() => {
+    const handleFollowingCountChange = (event: any) => {
+      const { action } = event.detail;
+      if (action === 'increment') {
+        setStats(prev => ({
+          ...prev,
+          following: prev.following + 1
+        }));
+        console.log("Following count incremented via real-time event");
+      } else if (action === 'decrement') {
+        setStats(prev => ({
+          ...prev,
+          following: Math.max(0, prev.following - 1)
+        }));
+        console.log("Following count decremented via real-time event");
+      }
+    };
+
+    window.addEventListener('followingCountChanged', handleFollowingCountChange);
+
+    return () => {
+      window.removeEventListener('followingCountChanged', handleFollowingCountChange);
+    };
+  }, []);
+
+  // Refresh stats when following changes
+  // Simple local update when following changes
+  useEffect(() => {
+    if (shouldRefreshStats) {
+      setStats(prev => ({
+        ...prev,
+        following: Math.max(0, prev.following - 1) // Decrement following count
+      }));
+      setShouldRefreshStats(false);
+    }
+  }, [shouldRefreshStats]);
+
+  const handleFollowersClick = () => {
+    setFollowersFollowingModal({
+      isOpen: true,
+      type: 'followers'
+    });
+  };
+
+  const handleFollowingClick = () => {
+    setFollowersFollowingModal({
+      isOpen: true,
+      type: 'following'
+    });
+  };
+
+  const handleCloseFollowersFollowingModal = () => {
+    setFollowersFollowingModal({
+      isOpen: false,
+      type: null
+    });
+    // Note: Not refreshing stats on close since unfollowing already happened via API
+    // Stats will be correct on next component load
+  };
 
   const headerSrc = user?.header
     ? `http://localhost:3002/uploads/${user.header}`
@@ -19,6 +141,13 @@ export function ProfileCard() {
   const profileSrc = user?.photo_profile
     ? `http://localhost:3002/uploads/${user.photo_profile}`
     : "https://cdn.pixabay.com/photo/2023/02/18/11/00/icon-7797704_640.png";
+
+  
+  const debug = useSelector((state: any) => state.user);
+console.log("DEBUG USER:", debug);
+    // console.log("ProfileCard render:", user);
+    // console.log("ProfilecardRender", user);
+    
 
   return (
     <>
@@ -68,12 +197,12 @@ export function ProfileCard() {
           </p>
 
           <div className="flex items-center gap-3 text-xs">
-            <div>
-              <span className="text-blue-950 font-bold">291</span>
+            <div onClick={handleFollowersClick} className="cursor-pointer hover:opacity-75">
+              <span className="text-blue-950 font-bold">{loading ? '...' : stats.followers}</span>
               <span className="text-white ml-1">Followers</span>
             </div>
-            <div>
-              <span className="text-blue-950 font-bold">23</span>
+            <div onClick={handleFollowingClick} className="cursor-pointer hover:opacity-75">
+              <span className="text-blue-950 font-bold">{loading ? '...' : stats.following}</span>
               <span className="text-white ml-1">Following</span>
             </div>
           </div>
@@ -84,6 +213,16 @@ export function ProfileCard() {
       <ProfileModal open={isModalOpen} onClose={handleCloseModal}>
         <EditProfile onClose={handleCloseModal} />
       </ProfileModal>
+
+      {/* Followers/Following Modal */}
+      {followersFollowingModal.type && (
+        <FollowersFollowingModal
+          isOpen={followersFollowingModal.isOpen}
+          onClose={handleCloseFollowersFollowingModal}
+          type={followersFollowingModal.type}
+          userId={user?.id?.toString() || ''}
+        />
+      )}
     </>
   );
 }

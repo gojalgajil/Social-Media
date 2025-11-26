@@ -17,9 +17,13 @@ interface Thread {
 export default function ThreadCard({
   thread,
   toggleLike,
+  onReplyClick,
+  from = 'home',
 }: {
   thread: Thread;
   toggleLike?: (threadId: number, hasLiked: boolean) => Promise<void>;
+  onReplyClick?: () => void;
+  from?: string;
 }) {
   const navigate = useNavigate();
   return (
@@ -69,7 +73,16 @@ export default function ThreadCard({
           </div>
 
           <div
-            onClick={() => navigate(`/thread/${thread.id}`)}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onReplyClick) {
+                console.log("ThreadCard using custom onReplyClick");
+                onReplyClick();
+              } else {
+                console.log("ThreadCard navigating to thread:", thread.id);
+                navigate(`/thread/${thread.id}`, { state: { from } });
+              }
+            }}
             className="flex items-center gap-1 hover:text-white cursor-pointer text-sm"
           >
             <MessageCircle size={16} /> {thread.number_of_replies || 0}

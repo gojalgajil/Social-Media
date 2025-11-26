@@ -5,10 +5,9 @@ import { setUser } from '../../stores/userSlice';
 const BASE_URL = 'http://localhost:3002/uploads/';
 
 export default function EditProfile({ onClose }: { onClose?: () => void }) {
-  const currentUser = useSelector((state: any) => state.user.currentUser);
-  const dispatch = useDispatch();
+  const user = useSelector((state: any) => state.user.user);
 
-  const user = currentUser?.user; // 🔥 penting: biar ga bolak-balik tulis currentUser.user
+  const dispatch = useDispatch();
 
   const [fullName, setFullName] = useState('');
   const [username, setUsername] = useState('');
@@ -72,15 +71,17 @@ export default function EditProfile({ onClose }: { onClose?: () => void }) {
 
       // Normalisasi user baru
       const normalized = { ...result.user };
-      normalized.id = normalized.user_id;
-      delete normalized.user_id;
 
-      dispatch(setUser({
-          user: {
-            ...user,      // jaga data lama biar ga hilang
-            ...normalized // timpa data baru
-          }
-        }));
+// Hapus baris ini, karena bikin id undefined
+// normalized.id = normalized.user_id;
+// delete normalized.user_id;
+
+dispatch(
+  setUser({
+    user: normalized    // cukup ini aja
+  })
+);
+
       onClose?.();
     } catch (err: any) {
       alert(err.message);
@@ -92,7 +93,7 @@ export default function EditProfile({ onClose }: { onClose?: () => void }) {
       <h2 className="text-xl font-semibold mb-6 text-blue-950">Edit Profile</h2>
 
       {/* HEADER AREA */}
-      <div className="relative h-24 rounded-lg mb-6 overflow-hidden">
+      <div className="relative h-24 rounded-lg mb-6 overflow-visible">
         <div
           className="w-full h-full cursor-pointer"
           style={{
@@ -127,9 +128,9 @@ export default function EditProfile({ onClose }: { onClose?: () => void }) {
         </div>
 
         {/* PROFILE PICTURE */}
-        <div className="absolute -bottom-6 left-4">
+        <div className="absolute -bottom-6 left-3">
           <div
-            className="w-16 h-16 rounded-full bg-gray-300 border-4 border-white cursor-pointer overflow-hidden shadow"
+            className="w-17 h-17 rounded-full bg-gray-300 border-3 border-blue-300 cursor-pointer overflow-hidden"
             style={{
               backgroundImage: profileImage ? `url(${profileImage})` : undefined,
               backgroundSize: 'cover',

@@ -57,8 +57,8 @@ export default function ReplyInput({
       <div>
         <img
   src={
-    currentUser?.user?.photo_profile
-      ? `http://localhost:3002/uploads/${currentUser.user.photo_profile}`
+    currentUser?.photo_profile
+      ? `http://localhost:3002/uploads/${currentUser.photo_profile}`
       : "https://cdn.pixabay.com/photo/2023/02/18/11/00/icon-7797704_640.png"
   }
   className="h-8 w-8 rounded-full object-cover"

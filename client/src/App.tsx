@@ -4,6 +4,8 @@ import { AuthProvider } from './context/AuthProvider'
 import Register from './pages/Register'
 import Login from './pages/Login'
 import HomePage from './pages/HomePageUpdated'
+import SearchPage from './pages/Search'
+import ProfilePage from './pages/Profile'
 import Status from './pages/Status'
 
 // Layout
@@ -36,7 +38,8 @@ useEffect(() => {
         withCredentials: true,   // ⬅ WAJIB DITAMBAH
       });
 
-      dispatch(setUser({ user: res.data, token }));
+      dispatch(setUser({ user: res.data.user, token }));
+      
       localStorage.setItem("currentUser", JSON.stringify(res.data));
 
     } catch (err) {
@@ -51,6 +54,7 @@ useEffect(() => {
   const authPages = ["/login", "/register"]
   const isAuthPage = authPages.includes(location.pathname)
 
+  
   return (
     <>
       {isAuthPage ? (
@@ -65,6 +69,9 @@ useEffect(() => {
           <main className="flex-1 ml-75 mr-100">
             <Routes>
               <Route path="/" element={<HomePage />} />
+              <Route path="/search" element={<SearchPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/profile/:userId" element={<ProfilePage />} />
               <Route path="/thread/:threadId" element={<Status />} />
             </Routes>
           </main>

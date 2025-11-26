@@ -38,6 +38,8 @@ router.get('/user/:userId', authenticate, threadController.getThreadsByUser);
 // Get thread by ID
 router.get('/:id', authenticate, threadController.getThreadById);
 
+router.get('/:id/like/status', authenticate, threads.getLikeStatus);
+
 router.post("/:id/like", authenticate, threads.toggleLike);
 
 // Create a new thread (protected)

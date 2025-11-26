@@ -327,6 +327,48 @@ const threads = await Promise.all(
       });
     }
   }
+  // Get like status and count
+  async getLikeStatus(req: Request, res: Response) {
+    try {
+      const threadId = parseInt(req.params.id);
+      const authUser = (req as any).user;
+
+      if (!authUser) {
+        return res.status(401).json({
+          success: false,
+          message: "Unauthorized",
+        });
+      }
+
+      const userId = authUser.id;
+
+      // Count likes
+      const likesCount = await prisma.likes.count({
+        where: { thread_id: threadId },
+      });
+
+      // Check if current user liked
+      const isLiked = await prisma.likes.findFirst({
+        where: {
+          thread_id: threadId,
+          user_id: userId,
+        },
+      });
+
+      return res.status(200).json({
+        success: true,
+        isLiked: Boolean(isLiked),
+        likesCount,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Error fetching like status",
+        error: (error as Error).message,
+      });
+    }
+  }
+
   // Toggle like / unlike
 async toggleLike(req: Request, res: Response) {
   try {

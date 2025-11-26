@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchRepliesByThread, toggleReplyLike, addReply } from "@/stores/repliesSlice";
 import { toggleThreadLike } from "@/stores/threadsSlice";
@@ -46,6 +46,7 @@ interface ThreadUser {
 export default function ThreadDetailPage() {
   const { threadId } = useParams<{ threadId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useDispatch();
   const { replies, loading: repliesLoading, error } = useSelector((state: any) => state.replies);
   const currentUser = useSelector((state: any) => state.user.currentUser);
@@ -62,20 +63,12 @@ export default function ThreadDetailPage() {
   }, [threadId, dispatch]);
 
   useEffect(() => {
-    let userAvatarUrl = "";
-    try {
-      const userData = localStorage.getItem("user");
-      if (userData) {
-        const parsed = JSON.parse(userData);
-        if (parsed.photo_profile) {
-          userAvatarUrl = `http://localhost:3002/uploads/${parsed.photo_profile}`;
-        }
-      }
-    } catch (error) {
-      console.error("Error parsing user data:", error);
+    if (currentUser && currentUser.photo_profile) {
+      setUserAvatar(`http://localhost:3002/uploads/${currentUser.photo_profile}`);
+    } else {
+      setUserAvatar("");
     }
-    setUserAvatar(userAvatarUrl);
-  }, []);
+  }, [currentUser]);
 
   // Set up callback for WebSocket like updates
   useEffect(() => {
@@ -117,6 +110,12 @@ export default function ThreadDetailPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const navigateToHome = () => {
+    const from = location.state?.from || 'home';
+    console.log(`Navigating back to: ${from}`);
+    navigate(from === 'profile' ? '/profile' : '/');
   };
 
   const handleReplySubmit = async (content: string, image?: File) => {
@@ -166,6 +165,12 @@ export default function ThreadDetailPage() {
 
     try {
       await dispatch(toggleThreadLike({ threadId, currentIsLiked: isLiked }));
+
+      // Success - broadcast the update to other pages
+      console.log("Status page broadcasting like update:", { threadId, userId: currentUser?.id || 0, liked: newIsLiked, likesCount: newLikesCount });
+      if ((window as any).likeUpdateCallback) {
+        (window as any).likeUpdateCallback({ threadId, userId: currentUser?.id || 0, liked: newIsLiked, likesCount: newLikesCount });
+      }
     } catch (error) {
       // Revert
       setThread(thread);
@@ -213,7 +218,7 @@ export default function ThreadDetailPage() {
   return (
     <div className="max-w-2xl mx-auto">
       {/* Status / Thread Header */}
-      <div className="border-b border-blue-950 py-4 px-4 font-semibold text-lg flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
+      <div className="border-b border-blue-950 py-4 px-4 font-semibold text-lg flex items-center gap-2 cursor-pointer" onClick={navigateToHome}>
         <ArrowLeft size={20} />
         Status
       </div>

@@ -7,6 +7,13 @@ import ThreadPost from "../components/thread/ThreadPost";
 import { fetchThreads, toggleThreadLike } from "../stores/threadsSlice";
 import { connectSocket } from "../services/socketService";
 
+// Global callback for cross-page like synchronization
+declare global {
+  interface Window {
+    likeUpdateCallback?: (data: { threadId: number; userId: number; liked: boolean; likesCount: number }) => void;
+  }
+}
+
 export default function HomePage() {
   const context = useContext(AuthContext);
   if (!context) return null;
@@ -22,6 +29,32 @@ export default function HomePage() {
       connectSocket(token); // Connect WebSocket for real-time updates
     }
   }, [token, dispatch]);
+
+  // Global like update callback for cross-page synchronization
+  useEffect(() => {
+    const likeUpdateCallback = (data: { threadId: number; userId: number; liked: boolean; likesCount: number }) => {
+      console.log("Homepage receiving like update:", data);
+
+      // Update the specific thread in our threads array
+      dispatch({
+        type: 'threads/updateThreadLikeStatus',
+        payload: {
+          id: data.threadId,
+          likesCount: data.likesCount,
+          // Update isLiked only for the user who triggered the action
+          ...(data.userId === currentUser?.id ? { isLiked: data.liked } : {})
+        }
+      });
+    };
+
+    // Set the global callback (other pages will trigger this)
+    (window as any).likeUpdateCallback = likeUpdateCallback;
+
+    // Clean up on unmount
+    return () => {
+      (window as any).likeUpdateCallback = undefined;
+    };
+  }, [currentUser?.id, dispatch]);
 
   const toggleLike = async (threadId: number, isLiked: boolean) => {
     // Find the current thread to get likesCount
@@ -44,6 +77,12 @@ export default function HomePage() {
 
     try {
       await dispatch(toggleThreadLike({ threadId, currentIsLiked: isLiked }));
+
+      // Success - broadcast the update to other pages
+      console.log("Homepage broadcasting like update:", { threadId, userId: currentUser?.id || 0, liked: newIsLiked, likesCount: newLikesCount });
+      if ((window as any).likeUpdateCallback) {
+        (window as any).likeUpdateCallback({ threadId, userId: currentUser?.id || 0, liked: newIsLiked, likesCount: newLikesCount });
+      }
     } catch (error) {
       // Revert on error
       dispatch({
