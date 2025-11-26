@@ -3,6 +3,7 @@ import { Heart, MessageCircle } from "lucide-react";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchRepliesByThread, toggleReplyLike, addReply } from "@/stores/repliesSlice";
 import ReplyCard from "../reply/ReplyCard";
+import UserProfileHeader from "./UserProfileHeader";
 
 interface UserProfile {
   id: number;
@@ -160,42 +161,7 @@ export default function ThreadDetailModal({
         <div className="w-1/2 flex flex-col bg-white">
 
           {/* USER INFO - Match Profile Page Design */}
-          <div className="relative">
-            {/* Header with gradient background or user banner */}
-            <div
-              className="relative h-24 rounded-t-xl"
-              style={{
-                backgroundImage: profileUser?.header ? `url(${BASE_URL}${profileUser.header})` : undefined,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center'
-              }}
-            >
-              {!profileUser.header && (
-                <div className="w-full h-full bg-gradient-to-r from-green-400 via-yellow-400 to-yellow-400 rounded-t-xl"></div>
-              )}
-              {/* Profile picture - positioned to overlap header */}
-              <div className="absolute -bottom-8 left-3">
-                <img
-                  src={profileUser.photo_profile ? `${BASE_URL}${profileUser.photo_profile}` : "https://cdn.pixabay.com/photo/2023/02/18/11/00/icon-7797704_640.png"}
-                  className="w-17 h-17 rounded-full object-cover border-3 border-blue-300"
-                  alt="Profile"
-                />
-              </div>
-            </div>
-
-            {/* Profile info - padding-top accounts for overlapping profile pic */}
-            <div className="mt-8 px-3 pb-3">
-              <div className="flex items-center gap-1 mb-1">
-                <h3 className="font-bold text-blue-950 text-sm">{profileUser.full_name}</h3>
-              </div>
-
-              <p className="text-white text-xs mb-2">@{profileUser.username}</p>
-
-              <p className="text-blue-950 text-xs">
-                {profileUser.bio || "This user hasn't written a bio yet."}
-              </p>
-            </div>
-          </div>
+          <UserProfileHeader user={profileUser} />
 
           {/* THREAD CONTENT */}
           <div className="p-4 border-b">

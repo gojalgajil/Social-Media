@@ -10,6 +10,7 @@ import ProfilePosts from "../components/profile/ProfilePosts";
 import ProfileMedia from "../components/profile/ProfileMedia";
 import ImagePopup from "../components/ui/ImagePopup";
 import ThreadDetailModal from "../components/ui/ThreadDetailModal";
+import UserProfileHeader from "../components/ui/UserProfileHeader";
 
 interface UserProfile {
   id: number;
@@ -349,184 +350,189 @@ export default function ProfilePage() {
   const BASE_URL = 'http://localhost:3002/uploads/';
 
   return (
-    <>
-      {/* Image Popup Modal */}
-      <ImagePopup
-        isOpen={showImagePopup}
-        onClose={() => setShowImagePopup(false)}
-        imageUrl={selectedThread ? `${BASE_URL}${selectedThread.images?.[0]}` : ''}
-      />
+  <>
+    {/* Image Popup Modal */}
+    <ImagePopup
+      isOpen={showImagePopup}
+      onClose={() => setShowImagePopup(false)}
+      imageUrl={selectedThread ? `${BASE_URL}${selectedThread.images?.[0]}` : ''}
+    />
 
-      <div className="max-w-2xl mx-auto">
-        {/* Loading State */}
-        {loading && (
-          <div className="max-w-2xl mx-auto p-4">
-            <div className="text-center py-12">
-              Loading profile...
-            </div>
+    <div className="max-w-2xl mx-auto">
+
+      {/* Loading State */}
+      {loading && (
+        <div className="max-w-2xl mx-auto p-4">
+          <div className="text-center py-12">Loading profile...</div>
+        </div>
+      )}
+
+      {/* User not found */}
+      {!loading && !profileUser && (
+        <div className="max-w-2xl mx-auto p-4">
+          <div className="text-center py-12">
+            <ArrowLeft className="cursor-pointer mx-auto mb-4" size={48} onClick={() => navigate('/')} />
+            <h3>User not found</h3>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* User not found */}
-        {!loading && !profileUser && (
-          <div className="max-w-2xl mx-auto p-4">
-            <div className="text-center py-12">
-              <ArrowLeft className="cursor-pointer mx-auto mb-4" size={48} onClick={() => navigate('/')} />
-              <h3>User not found</h3>
-            </div>
+      {/* Profile Content */}
+      {!loading && profileUser && (
+        <>
+          {/* Header top bar */}
+          <div
+            className="border-blue-950 py-4 px-4 font-semibold text-lg flex items-center gap-2 cursor-pointer"
+            onClick={() => navigate('/')}
+          >
+            <ArrowLeft size={20} />
+            <h3 className="font-bold text-blue-950">{profileUser.full_name}</h3>
           </div>
-        )}
 
-        {/* Profile Content */}
-        {!loading && profileUser && (
-          <>
-            {/* Header */}
-            <div className="border-blue-950 py-4 px-4 font-semibold text-lg flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
-              <ArrowLeft size={20} />
-              <h3 className="font-bold text-blue-950">{profileUser.full_name}</h3>
-            </div>
-            {/* Header with gradient background or user banner */}
-            <div
-              className="relative mx-3 h-30 rounded-lg"
-              style={{
-                backgroundImage: profileUser?.header ? `url(${BASE_URL}${profileUser.header})` : undefined,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center'
-              }}
-            >
-              {!profileUser.header && (
-                <div className="w-full h-full bg-gradient-to-r from-green-400 via-yellow-400 to-yellow-400 rounded-lg"></div>
-              )}
-              {/* Profile picture - positioned to overlap header */}
-              <div className="absolute -bottom-8 left-3">
-                <img
-                  src={profileUser.photo_profile ? `${BASE_URL}${profileUser.photo_profile}` : "https://cdn.pixabay.com/photo/2023/02/18/11/00/icon-7797704_640.png"}
-                  className="w-17 h-17 rounded-full object-cover border-3 border-blue-300"
-                  alt="Profile"
-                />
-              </div>
-            </div>
+          {/* Header + Avatar + Edit */}
+          <div className="relative">
+            <UserProfileHeader
+              user={profileUser}
+              clickable={false}
+              className="mx-3 h-32 w-full rounded-lg object-cover"
+            />
 
-            {/* Edit Profile button (only for current user) */}
+            {/* Avatar */}
+            <img
+  src={
+    profileUser.photo_profile
+      ? `http://localhost:3002/uploads/${profileUser.photo_profile}`
+      : "/default-avatar.png"
+  }
+  className="w-20 h-20 rounded-full border-4 border-white absolute left-6 -bottom-10 object-cover shrink-0"
+  alt="profile"
+/>
+
+            {/* Edit button */}
             {isCurrentUser && (
-              <div className="mx-3 mb-2 flex justify-end">
-                <button
-                  className="px-3 mt-2 py-1 bg-blue-500 text-white text-xs rounded-lg hover:bg-blue-400 cursor-pointer transition"
-                  onClick={handleEditProfile}
-                >
-                  Edit Profile
-                </button>
-              </div>
+              <button
+                className="absolute bottom-3 right-3 px-3 py-1 bg-blue-500 text-white text-xs rounded-lg hover:bg-blue-400 cursor-pointer transition"
+                onClick={handleEditProfile}
+              >
+                Edit Profile
+              </button>
+            )}
+          </div>
+
+          {/* Profile Info */}
+          <div className="pt-14 px-4">
+            {/* Name */}
+            <h3 className="text-lg font-bold text-blue-950">{profileUser.full_name}</h3>
+
+            {/* Username */}
+            <p className="text-gray-700 text-xs italic">@{profileUser.username}</p>
+
+            {/* Bio */}
+            {profileUser.bio && (
+              <p className="mt-2 font-semibold text-sm text-gray-800 leading-relaxed whitespace-pre-line">
+                {profileUser.bio}
+              </p>
             )}
 
-            {/* Profile info */}
-            <div className="mt-8 px-3 pb-3">
-              <div className="flex items-center gap-1 mb-1">
-                <h3 className="font-bold text-blue-950 text-sm">{profileUser.full_name}</h3>
+            {/* Stats */}
+            <div className="flex items-center gap-4 text-xs mt-3">
+              <div onClick={handleFollowersClick} className="cursor-pointer hover:opacity-75">
+                <span className="text-blue-950 font-bold">{stats.followers}</span>
+                <span className="text-gray-700 ml-1">Followers</span>
               </div>
 
-              <p className="text-white text-xs mb-2">@{profileUser.username}</p>
-
-              <p className="text-blue-950 text-xs mb-2">
-                {profileUser.bio || "This user hasn't written a bio yet."}
-              </p>
-
-              {/* Stats */}
-              <div className="flex items-center gap-3 text-xs">
-                <div onClick={handleFollowersClick} className="cursor-pointer hover:opacity-75">
-                  <span className="text-blue-950 font-bold">{stats.followers}</span>
-                  <span className="text-white ml-1">Followers</span>
-                </div>
-                <div onClick={handleFollowingClick} className="cursor-pointer hover:opacity-75">
-                  <span className="text-blue-950 font-bold">{stats.following}</span>
-                  <span className="text-white ml-1">Following</span>
-                </div>
+              <div onClick={handleFollowingClick} className="cursor-pointer hover:opacity-75">
+                <span className="text-blue-950 font-bold">{stats.following}</span>
+                <span className="text-gray-700 ml-1">Following</span>
               </div>
             </div>
+          </div>
 
-            {/* Profile Tabs */}
-            <div className="mt-6 border-t border-gray-200">
-              <div className="flex">
-                <button
-                  onClick={() => setActiveTab('posts')}
-                  className={`flex-1 py-3 px-4 text-center font-medium transition-colors ${
-                    activeTab === 'posts'
-                      ? 'text-blue-600 border-b-2 border-blue-600'
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  All Posts
-                </button>
-                <button
-                  onClick={() => setActiveTab('media')}
-                  className={`flex-1 py-3 px-4 text-center font-medium transition-colors ${
-                    activeTab === 'media'
-                      ? 'text-blue-600 border-b-2 border-blue-600'
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  Media
-                </button>
-              </div>
+          {/* Profile Tabs */}
+          <div className="mt-6 border-t border-gray-200">
+            <div className="flex">
+              <button
+                onClick={() => setActiveTab('posts')}
+                className={`flex-1 py-3 px-4 text-center font-medium transition-colors ${
+                  activeTab === 'posts'
+                    ? 'text-blue-600 border-b-2 border-blue-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                All Posts
+              </button>
+
+              <button
+                onClick={() => setActiveTab('media')}
+                className={`flex-1 py-3 px-4 text-center font-medium transition-colors ${
+                  activeTab === 'media'
+                    ? 'text-blue-600 border-b-2 border-blue-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Media
+              </button>
             </div>
+          </div>
 
-            {/* Tab Content */}
-            <div className="p-4">
-              {activeTab === 'posts' && (
-                <ProfilePosts
-                  userThreads={userThreads}
-                  threadsLoading={threadsLoading}
-                  isCurrentUser={isCurrentUser}
-                  profileUser={profileUser!}
-                  onToggleLike={handleToggleThreadLike}
-                />
-              )}
-
-              {activeTab === 'media' && (
-                <ProfileMedia
-                  userThreads={userThreads}
-                  threadsLoading={threadsLoading}
-                  isCurrentUser={isCurrentUser}
-                  currentUser={currentUser}
-                  token={token}
-                  onOpenThreadModal={handleOpenThreadModal}
-                  BASE_URL={BASE_URL}
-                />
-              )}
-            </div>
-
-            {/* Followers/Following Modal */}
-            {followersFollowingModal.type && (
-              <FollowersFollowingModal
-                isOpen={followersFollowingModal.isOpen}
-                onClose={handleCloseFollowersFollowingModal}
-                type={followersFollowingModal.type}
-                userId={profileUser.id?.toString() || ''}
+          {/* Tab Content */}
+          <div className="p-4">
+            {activeTab === 'posts' && (
+              <ProfilePosts
+                userThreads={userThreads}
+                threadsLoading={threadsLoading}
+                isCurrentUser={isCurrentUser}
+                profileUser={profileUser}
+                onToggleLike={handleToggleThreadLike}
               />
             )}
 
-            {/* Edit Profile Modal */}
-            <ProfileModal open={isModalOpen} onClose={handleCloseModal}>
-              <EditProfile onClose={handleCloseModal} />
-            </ProfileModal>
+            {activeTab === 'media' && (
+              <ProfileMedia
+                userThreads={userThreads}
+                threadsLoading={threadsLoading}
+                isCurrentUser={isCurrentUser}
+                currentUser={currentUser}
+                token={token}
+                onOpenThreadModal={handleOpenThreadModal}
+                BASE_URL={BASE_URL}
+              />
+            )}
+          </div>
 
-            {/* Thread Details Modal */}
-            <ThreadDetailModal
-              isOpen={showThreadModal}
-              onClose={() => {
-                setShowThreadModal(false);
-                setSelectedThread(null);
-              }}
-              thread={selectedThread}
-              profileUser={profileUser}
-              token={token}
-              currentUser={currentUser}
-              onToggleImagePopup={() => setShowImagePopup(true)}
-              onToggleLike={handleToggleThreadLike}
+          {/* Followers/Following Modal */}
+          {followersFollowingModal.type && (
+            <FollowersFollowingModal
+              isOpen={followersFollowingModal.isOpen}
+              onClose={handleCloseFollowersFollowingModal}
+              type={followersFollowingModal.type}
+              userId={profileUser.id?.toString() || ''}
             />
-          </>
-        )}
-      </div>
-    </>
-  );
+          )}
+
+          {/* Edit Profile Modal */}
+          <ProfileModal open={isModalOpen} onClose={handleCloseModal}>
+            <EditProfile onClose={handleCloseModal} />
+          </ProfileModal>
+
+          {/* Thread Details Modal */}
+          <ThreadDetailModal
+            isOpen={showThreadModal}
+            onClose={() => {
+              setShowThreadModal(false);
+              setSelectedThread(null);
+            }}
+            thread={selectedThread}
+            profileUser={profileUser}
+            token={token}
+            currentUser={currentUser}
+            onToggleImagePopup={() => setShowImagePopup(true)}
+            onToggleLike={handleToggleThreadLike}
+          />
+        </>
+      )}
+    </div>
+  </>
+);
+
 }

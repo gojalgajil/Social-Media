@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 
 interface User {
   id: number;
@@ -19,6 +20,7 @@ interface FollowersFollowingModalProps {
 }
 
 export default function FollowersFollowingModal({ isOpen, onClose, type, userId, onFollowingChanged }: FollowersFollowingModalProps) {
+  const navigate = useNavigate();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const token = useSelector((state: any) => state.user.token) || localStorage.getItem("token");
@@ -176,7 +178,7 @@ export default function FollowersFollowingModal({ isOpen, onClose, type, userId,
           ) : users.length > 0 ? (
             <div className="space-y-4">
               {users.map(user => (
-                <div key={user.id} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg">
+                <div key={user.id} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg cursor-pointer" onClick={() => navigate(`/profile/${user.id}`)}>
                   <div className="flex items-center space-x-3">
                     <img
                       src={user.photo_profile ? `${BASE_URL}${user.photo_profile}` : "https://cdn.pixabay.com/photo/2023/02/18/11/00/icon-7797704_640.png"}
@@ -194,14 +196,20 @@ export default function FollowersFollowingModal({ isOpen, onClose, type, userId,
                   {type === 'followers' && (
                     user.isFollowing ? (
                       <button
-                        onClick={() => handleUnfollow(user.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleUnfollow(user.id);
+                        }}
                         className="bg-red-100 text-red-600 hover:bg-red-200 px-3 py-1 rounded-full text-xs font-semibold transition-colors"
                       >
                         Following
                       </button>
                     ) : (
                       <button
-                        onClick={() => handleFollow(user.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleFollow(user.id);
+                        }}
                         className="bg-blue-500 text-white hover:bg-blue-600 px-3 py-1 rounded-full text-xs font-semibold transition-colors"
                       >
                         Follow
@@ -210,7 +218,10 @@ export default function FollowersFollowingModal({ isOpen, onClose, type, userId,
                   )}
                   {type === 'following' && (
                     <button
-                      onClick={() => handleUnfollow(user.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleUnfollow(user.id);
+                      }}
                       className="bg-red-100 text-red-600 hover:bg-red-200 px-3 py-1 rounded-full text-xs font-semibold transition-colors"
                     >
                       Unfollow
