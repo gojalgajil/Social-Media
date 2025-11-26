@@ -206,14 +206,17 @@ export default function FollowsPage() {
           <div className="space-y-4">
             {getCurrentUsers().map(user => (
               <div key={user.id} className="flex items-center justify-between p-4 bg-white rounded-lg border hover:shadow-sm transition-shadow">
-                <div className="flex items-center space-x-4">
+                <div
+                  className="flex items-center space-x-4 cursor-pointer"
+                  onClick={() => navigate(`/profile/${user.id}`)}
+                >
                   <img
                     src={user.photo_profile ? `${BASE_URL}${user.photo_profile}` : "https://cdn.pixabay.com/photo/2023/02/18/11/00/icon-7797704_640.png"}
                     alt={user.username}
-                    className="w-14 h-14 rounded-full object-cover border-2 border-gray-200"
+                    className="w-14 h-14 rounded-full object-cover border-2 border-gray-200 hover:border-blue-300 transition-colors"
                   />
                   <div className="flex-1">
-                    <div className="font-semibold text-blue-950 text-base">{user.full_name}</div>
+                    <div className="font-semibold text-blue-950 text-base hover:text-blue-600 transition-colors">{user.full_name}</div>
                     <div className="text-sm text-gray-600">@{user.username}</div>
                     {user.bio && (
                       <div className="text-sm text-gray-500 mt-1 line-clamp-2">{user.bio}</div>

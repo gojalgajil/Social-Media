@@ -12,6 +12,7 @@ interface Thread {
   full_name?: string;
   username?: string;
   avatar?: string;
+  userId?: number;
 }
 
 export default function ThreadCard({
@@ -35,14 +36,25 @@ export default function ThreadCard({
               ? `http://localhost:3002/uploads/${thread.avatar}`
               : "https://cdn.pixabay.com/photo/2023/02/18/11/00/icon-7797704_640.png"
           }
-          className="w-8 h-8 rounded-full object-cover"
+          className="w-8 h-8 rounded-full object-cover cursor-pointer hover:border-blue-300 transition-colors"
+          onClick={() => thread.userId && navigate(`/profile/${thread.userId}`)}
         />
       </div>
 
       <div className="flex-1">
         <div className="flex items-center gap-2">
-          <span className="font-medium text-sm">{thread.full_name || "User"}</span>
-          <span className="text-xs text-white">@{thread.username || "user"}</span>
+          <span
+            className="font-medium text-sm cursor-pointer hover:text-blue-600 transition-colors"
+            onClick={() => thread.userId && navigate(`/profile/${thread.userId}`)}
+          >
+            {thread.full_name || "User"}
+          </span>
+          <span
+            className="text-xs text-white cursor-pointer hover:text-blue-300 transition-colors"
+            onClick={() => thread.userId && navigate(`/profile/${thread.userId}`)}
+          >
+            @{thread.username || "user"}
+          </span>
           <span className="text-xs text-gray-500">
             • {new Date(thread.created_at).toLocaleDateString()}
           </span>

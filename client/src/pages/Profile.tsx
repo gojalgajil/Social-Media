@@ -66,11 +66,8 @@ export default function ProfilePage() {
 
   // Handle route logic
   useEffect(() => {
-    console.log("Profile useEffect triggered:", { userId, currentUser });
-
     if (!userId && currentUser?.id) {
       // Viewing own profile via sidebar click
-      console.log("Showing own profile");
       setIsCurrentUser(true);
       setProfileUser(currentUser);
       fetchStats(currentUser.id.toString());
@@ -80,11 +77,11 @@ export default function ProfilePage() {
       // Waiting for currentUser to load
       setLoading(true);
     } else if (userId) {
-      // Viewing another user's profile via search results
+      // Viewing another user's profile via navigation (search, follows, etc.)
       console.log("Viewing other user profile:", userId);
-      setIsCurrentUser(currentUser?.id?.toString() === userId);
       fetchUserProfile(userId);
       fetchStats(userId);
+      fetchUserThreads(userId);
     }
   }, [userId, currentUser]);
 
@@ -120,10 +117,20 @@ export default function ProfilePage() {
     try {
       setLoading(true);
 
-      // For other users, we need to get their profile - but we don't have an API for that
-      // For now, we'll just show that the user wasn't found
-      console.log(`Attempting to view profile for user ${id}`);
-      setProfileUser(null);
+      const response = await fetch(`http://localhost:3002/api/user/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setProfileUser(data.user);
+        setIsCurrentUser(data.user.id === currentUser?.id);
+      } else {
+        setProfileUser(null);
+        console.log(`User ${id} not found`);
+      }
+
       setLoading(false);
     } catch (error) {
       console.error("Error fetching user profile:", error);
@@ -174,39 +181,30 @@ export default function ProfilePage() {
         credentials: 'include',
       });
 
+      console.log(`Fetching threads for user ${id}, response:`, response.status);
+
       if (response.ok) {
         const threadsData = await response.json();
         const threads = threadsData || [];
+
+        console.log(`Loaded ${threads.length} threads for user ${id}:`, threads);
 
         // Always sync like status from localStorage for the current user
         // This ensures like colors persist across navigation
         const likedThreads = JSON.parse(localStorage.getItem('likedThreads') || '{}');
 
-        const threadsWithLikes = await Promise.all(
-          threads.map(async (thread: Thread) => {
-            try {
-              const likeStatusResponse = await fetch(`http://localhost:3002/api/threads/${thread.id}/like/status`, {
-                headers: { Authorization: `Bearer ${token}` },
-                credentials: 'include',
-              });
-
-              if (likeStatusResponse.ok) {
-                const { likesCount } = await likeStatusResponse.json();
-                // Use localStorage to preserve user's like actions across navigation
-                const isLikedByCurrentUser = !!likedThreads[thread.id];
-                return { ...thread, isLiked: isLikedByCurrentUser, likesCount };
-              } else {
-                // Fallback: use thread.likesCount if available
-                const isLikedByCurrentUser = !!likedThreads[thread.id];
-                return { ...thread, isLiked: isLikedByCurrentUser, likesCount: thread.likesCount || 0 };
-              }
-            } catch (error) {
-              console.error(`Error fetching like status for thread ${thread.id}:`, error);
-              const isLikedByCurrentUser = !!likedThreads[thread.id];
-              return { ...thread, isLiked: isLikedByCurrentUser, likesCount: thread.likesCount || 0 };
-            }
-          })
-        );
+        // For other users' profiles: use the likesCount from the threads API directly
+        // This avoids multiple API calls that can cause errors
+        const threadsWithLikes = threads.map((thread: Thread) => {
+          // Use localStorage to preserve user's like actions across navigation
+          const isLikedByCurrentUser = !!likedThreads[thread.id];
+          // Trust the likesCount already provided by the user threads API
+          return {
+            ...thread,
+            isLiked: isLikedByCurrentUser,
+            likesCount: thread.likesCount || 0
+          };
+        });
         setUserThreads(threadsWithLikes);
       } else {
         // If no API endpoint yet, show empty threads
@@ -360,12 +358,6 @@ export default function ProfilePage() {
       />
 
       <div className="max-w-2xl mx-auto">
-        {/* Header */}
-        <div className="border-blue-950 py-4 px-4 font-semibold text-lg flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
-          <ArrowLeft size={20} />
-          <h3 className="font-bold text-blue-950">Profile</h3>
-        </div>
-
         {/* Loading State */}
         {loading && (
           <div className="max-w-2xl mx-auto p-4">
@@ -388,6 +380,11 @@ export default function ProfilePage() {
         {/* Profile Content */}
         {!loading && profileUser && (
           <>
+            {/* Header */}
+            <div className="border-blue-950 py-4 px-4 font-semibold text-lg flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
+              <ArrowLeft size={20} />
+              <h3 className="font-bold text-blue-950">{profileUser.full_name}</h3>
+            </div>
             {/* Header with gradient background or user banner */}
             <div
               className="relative mx-3 h-30 rounded-lg"
@@ -423,7 +420,7 @@ export default function ProfilePage() {
             )}
 
             {/* Profile info */}
-            <div className="px-3 pb-3">
+            <div className="mt-8 px-3 pb-3">
               <div className="flex items-center gap-1 mb-1">
                 <h3 className="font-bold text-blue-950 text-sm">{profileUser.full_name}</h3>
               </div>

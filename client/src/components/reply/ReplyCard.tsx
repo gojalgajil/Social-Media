@@ -22,6 +22,8 @@ interface Reply {
   };
 }
 
+import { useNavigate } from 'react-router-dom';
+
 export default function ReplyCard({
   reply,
   threadUser,
@@ -31,6 +33,7 @@ export default function ReplyCard({
   threadUser: ThreadUser;
   toggleLike: (threadId: number, hasLiked: boolean) => Promise<void>;
 }) {
+  const navigate = useNavigate();
   return (
     <div className="border-b border-blue-950 py-2 px-2 flex gap-3">
       <div>
@@ -39,17 +42,24 @@ export default function ReplyCard({
             ? `http://localhost:3002/uploads/${reply.user.photo_profile}`
             : "https://cdn.pixabay.com/photo/2023/02/18/11/00/icon-7797704_640.png"
           }
-          className="h-6 w-6 rounded-full object-cover"
+          className="h-6 w-6 rounded-full object-cover cursor-pointer hover:border-blue-300 transition-colors"
           alt="profile"
+          onClick={() => reply.user?.id && navigate(`/profile/${reply.user.id}`)}
         />
       </div>
 
       <div className="flex-1">
         <div className="flex items-center gap-2">
-          <span className="font-medium text-xs">
+          <span
+            className="font-medium text-xs cursor-pointer hover:text-blue-600 transition-colors"
+            onClick={() => reply.user?.id && navigate(`/profile/${reply.user.id}`)}
+          >
             {reply.user?.full_name || "User"}
           </span>
-          <span className="text-xs text-white">
+          <span
+            className="text-xs text-white cursor-pointer hover:text-blue-300 transition-colors"
+            onClick={() => reply.user?.id && navigate(`/profile/${reply.user.id}`)}
+          >
             @{reply.user?.username || "user"}
           </span>
           <span className="text-xs text-gray-500">

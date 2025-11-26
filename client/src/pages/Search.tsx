@@ -101,10 +101,12 @@ export default function SearchPage() {
       // Fetch search results and current user's following list
       const [searchResponse, followingResponse] = await Promise.all([
         fetch(`http://localhost:3002/api/user/search?q=${encodeURIComponent(query)}`, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          credentials: 'include'
         }),
         currentUser?.id ? fetch(`http://localhost:3002/api/user/${currentUser.id}/following`, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          credentials: 'include'
         }) : Promise.resolve(null)
       ]);
 
@@ -181,8 +183,7 @@ export default function SearchPage() {
   const handleSuggestionClick = (user: SearchUser) => {
     setQuery(user.username); // Set the username in the input
     setShowSuggestions(false);
-    // Could also navigate directly to profile here if preferred
-    // navigate(`/profile/${user.id}`);
+    // Allow user to then click search button
   };
 
   const BASE_URL = 'http://localhost:3002/uploads/';
@@ -294,14 +295,17 @@ export default function SearchPage() {
                     key={user.id}
                     className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
                   >
-                    <div className="flex items-center space-x-3">
+                    <div
+                      className="flex items-center space-x-3 cursor-pointer"
+                      onClick={() => navigate(`/profile/${user.id}`)}
+                    >
                       <img
                         src={user.photo_profile ? `${BASE_URL}${user.photo_profile}` : "https://cdn.pixabay.com/photo/2023/02/18/11/00/icon-7797704_640.png"}
                         alt={user.username}
-                        className="w-12 h-12 rounded-full object-cover"
+                        className="w-12 h-12 rounded-full object-cover hover:border-blue-300 transition-colors"
                       />
                       <div>
-                        <div className="font-semibold text-blue-950">{user.full_name}</div>
+                        <div className="font-semibold text-blue-950 hover:text-blue-600 transition-colors">{user.full_name}</div>
                         <div className="text-sm text-gray-600">@{user.username}</div>
                         {user.bio && (
                           <div className="text-sm text-gray-500 mt-1">{user.bio}</div>

@@ -202,17 +202,11 @@ router.post('/unfollow', authenticate, async (req, res) => {
   }
 });
 
+// Allow public viewing of any user's threads (social media style)
 router.get('/:id/threads', authenticate, async (req, res) => {
   const { id } = req.params;
-  const { user } = req as any;
 
   try {
-    // For now, let users only see their own threads
-    // Later we can expand this to allow viewing others' threads
-    if (user.id.toString() !== id) {
-      return res.status(403).json({ message: 'Can only view own threads' });
-    }
-
     // Get basic thread data with like counts
     const rawThreads = await prisma.threads.findMany({
       where: {
@@ -295,6 +289,43 @@ router.get('/search', authenticate, async (req, res) => {
     return res.json(users);
   } catch (error) {
     console.error('Search error:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// View any user's public profile (must be LAST route - catchall)
+router.get('/:id', async (req, res) => {
+  const { id } = req.params;
+
+  // Prevent conflict with other routes by checking if ID is numeric
+  if (isNaN(parseInt(id))) {
+    return res.status(400).json({ message: 'Invalid user ID' });
+  }
+
+  try {
+    const userData = await prisma.user.findUnique({
+      where: { id: parseInt(id) },
+      select: {
+        id: true,
+        username: true,
+        full_name: true,
+        photo_profile: true,
+        bio: true,
+        header: true,
+        created_at: true
+      }
+    });
+
+    if (!userData) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    return res.json({
+      message: "User profile",
+      user: userData
+    });
+
+  } catch (error) {
     return res.status(500).json({ message: 'Internal server error' });
   }
 });
