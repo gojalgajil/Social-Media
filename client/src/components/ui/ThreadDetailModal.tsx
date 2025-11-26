@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Heart, MessageCircle } from "lucide-react";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchRepliesByThread, toggleReplyLike, addReply } from "@/stores/repliesSlice";
-import { toggleThreadLike } from "@/stores/threadsSlice";
 import ReplyCard from "../reply/ReplyCard";
 
 interface UserProfile {
@@ -32,7 +31,8 @@ interface ThreadDetailModalProps {
   token: string;
   currentUser: any;
   onToggleImagePopup: () => void;
-}
+  onToggleLike: (threadId: number, hasLiked: boolean) => Promise<void>;
+};
 
 export default function ThreadDetailModal({
   isOpen,
@@ -41,7 +41,8 @@ export default function ThreadDetailModal({
   profileUser,
   token,
   currentUser,
-  onToggleImagePopup
+  onToggleImagePopup,
+  onToggleLike
 }: ThreadDetailModalProps) {
   const dispatch = useDispatch();
   const { replies } = useSelector((state: any) => state.replies);
@@ -56,7 +57,7 @@ export default function ThreadDetailModal({
     console.log("Toggling like for thread:", threadId, "hasLiked:", hasLiked);
 
     try {
-      await dispatch(toggleThreadLike({ threadId, currentIsLiked: hasLiked }));
+      await onToggleLike(threadId, hasLiked);
     } catch (error) {
       console.error('Error toggling thread like:', error);
     }

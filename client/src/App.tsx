@@ -6,6 +6,7 @@ import Login from './pages/Login'
 import HomePage from './pages/HomePageUpdated'
 import SearchPage from './pages/Search'
 import ProfilePage from './pages/Profile'
+import FollowsPage from './pages/Follows'
 import Status from './pages/Status'
 
 // Layout
@@ -39,8 +40,8 @@ useEffect(() => {
       });
 
       dispatch(setUser({ user: res.data.user, token }));
-      
-      localStorage.setItem("currentUser", JSON.stringify(res.data));
+
+      localStorage.setItem("currentUser", JSON.stringify(res.data.user));
 
     } catch (err) {
       console.error("Failed to auto fetch user:", err);
@@ -54,7 +55,6 @@ useEffect(() => {
   const authPages = ["/login", "/register"]
   const isAuthPage = authPages.includes(location.pathname)
 
-  
   return (
     <>
       {isAuthPage ? (
@@ -70,6 +70,7 @@ useEffect(() => {
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/search" element={<SearchPage />} />
+              <Route path="/follows" element={<FollowsPage />} />
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/profile/:userId" element={<ProfilePage />} />
               <Route path="/thread/:threadId" element={<Status />} />

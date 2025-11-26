@@ -35,6 +35,7 @@ export const fetchThreads = createAsyncThunk(
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -58,7 +59,8 @@ export const fetchSingleThread = createAsyncThunk(
       const response = await fetch(`http://localhost:3002/api/threads/${id}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
-        }
+        },
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -85,13 +87,28 @@ export const toggleThreadLike = createAsyncThunk(
           "Authorization": `Bearer ${localStorage.getItem("token")}`,
           "Content-Type": "application/json",
         },
+        credentials: 'include',
       });
 
       if (!response.ok) {
         throw new Error('Failed to toggle like');
       }
 
-      return { threadId };
+      // After toggling like, fetch the updated like status to ensure accuracy
+      const statusResponse = await fetch(`http://localhost:3002/api/threads/${threadId}/like/status`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        credentials: 'include',
+      });
+
+      if (statusResponse.ok) {
+        const { isLiked, likesCount } = await statusResponse.json();
+        return { threadId, isLiked, likesCount };
+      } else {
+        // Fallback to optimistic calculation
+        return { threadId, isLiked: !currentIsLiked, likesCount: 0 }; // likesCount will be handled by optimistic update
+      }
     } catch (error) {
       console.error('Error in toggleThreadLike:', error);
       throw error;
@@ -144,11 +161,18 @@ const threadsSlice = createSlice({
         state.error = action.error.message || 'Failed to fetch threads';
       })
 
-      // toggleThreadLike - rely on optimistic updates and WebSocket for correct server state
+      // toggleThreadLike - now we use server response for accuracy
       .addCase(toggleThreadLike.pending, (state) => {
         state.error = null;
       })
-      // Remove fulfilled case to avoid double-toggling with optimistic updates
+      .addCase(toggleThreadLike.fulfilled, (state, action) => {
+        const { threadId, isLiked, likesCount } = action.payload!;
+        const index = state.threads.findIndex(thread => thread.id === threadId);
+        if (index !== -1) { // Always update with server data
+          state.threads[index].isLiked = isLiked;
+          state.threads[index].likesCount = likesCount;
+        }
+      })
       .addCase(toggleThreadLike.rejected, (state, action) => {
         state.error = action.error.message || 'Failed to toggle like';
         // TODO: Revert optimistic update on error

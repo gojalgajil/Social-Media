@@ -7,6 +7,7 @@ interface User {
   full_name: string;
   photo_profile: string | null;
   bio: string | null;
+  isFollowing?: boolean;
 }
 
 interface FollowersFollowingModalProps {
@@ -21,6 +22,7 @@ export default function FollowersFollowingModal({ isOpen, onClose, type, userId,
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const token = useSelector((state: any) => state.user.token) || localStorage.getItem("token");
+  const currentUser = useSelector((state: any) => state.user.user);
 
   useEffect(() => {
     if (isOpen && userId) {
@@ -33,21 +35,81 @@ export default function FollowersFollowingModal({ isOpen, onClose, type, userId,
 
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:3002/api/user/${userId}/${type}`, {
+      // Fetch the list (followers or following)
+      const listResponse = await fetch(`http://localhost:3002/api/user/${userId}/${type}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        setUsers(data);
-      } else {
-        setUsers([]);
+      let usersList: User[] = [];
+      if (listResponse.ok) {
+        usersList = await listResponse.json();
       }
+
+      // For followers, we need to check if current user is following each of them
+      // Also fetch current user's following to check relationships
+      if (currentUser?.id && type === 'followers') {
+        const followingResponse = await fetch(`http://localhost:3002/api/user/${currentUser.id}/following`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        let followingList: User[] = [];
+        if (followingResponse.ok) {
+          followingList = await followingResponse.json();
+        }
+
+        const followingIds = new Set(followingList.map(u => u.id));
+
+        // Mark users as followed if they are in our following list
+        usersList = usersList.map(user => ({
+          ...user,
+          isFollowing: followingIds.has(user.id)
+        }));
+      } else if (type === 'following') {
+        // For following list, we are following all of them
+        usersList = usersList.map(user => ({ ...user, isFollowing: true }));
+      }
+
+      setUsers(usersList);
     } catch (error) {
       console.error(`Error fetching ${type}:`, error);
       setUsers([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleFollow = async (targetUserId: number) => {
+    if (!token) return;
+
+    try {
+      const response = await fetch('http://localhost:3002/api/user/follow', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ targetUserId })
+      });
+
+      if (response.ok) {
+        // Update the user as followed
+        if (type === 'followers') {
+          setUsers(prev => prev.map(u =>
+            u.id === targetUserId ? { ...u, isFollowing: true } : u
+          ));
+        }
+        // Notify parent component that following changed
+        onFollowingChanged?.();
+
+        // Dispatch real-time event for following count update
+        window.dispatchEvent(new CustomEvent('followingCountChanged', {
+          detail: { action: 'increment' }
+        }));
+      } else {
+        console.error('Failed to follow user');
+      }
+    } catch (error) {
+      console.error("Error following user:", error);
     }
   };
 
@@ -65,8 +127,15 @@ export default function FollowersFollowingModal({ isOpen, onClose, type, userId,
       });
 
       if (response.ok) {
-        // Remove the user from the following list
-        setUsers(prev => prev.filter(u => u.id !== targetUserId));
+        if (type === 'following') {
+          // Remove the user from the following list
+          setUsers(prev => prev.filter(u => u.id !== targetUserId));
+        } else if (type === 'followers') {
+          // For followers list, just update the following status
+          setUsers(prev => prev.map(u =>
+            u.id === targetUserId ? { ...u, isFollowing: false } : u
+          ));
+        }
         // Notify parent component that following changed
         onFollowingChanged?.();
 
@@ -122,6 +191,23 @@ export default function FollowersFollowingModal({ isOpen, onClose, type, userId,
                       )}
                     </div>
                   </div>
+                  {type === 'followers' && (
+                    user.isFollowing ? (
+                      <button
+                        onClick={() => handleUnfollow(user.id)}
+                        className="bg-red-100 text-red-600 hover:bg-red-200 px-3 py-1 rounded-full text-xs font-semibold transition-colors"
+                      >
+                        Following
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleFollow(user.id)}
+                        className="bg-blue-500 text-white hover:bg-blue-600 px-3 py-1 rounded-full text-xs font-semibold transition-colors"
+                      >
+                        Follow
+                      </button>
+                    )
+                  )}
                   {type === 'following' && (
                     <button
                       onClick={() => handleUnfollow(user.id)}

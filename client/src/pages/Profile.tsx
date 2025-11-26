@@ -1,14 +1,13 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, Heart, MessageCircle } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate, useParams } from "react-router-dom";
-import { fetchRepliesByThread, toggleReplyLike, addReply } from "@/stores/repliesSlice";
 import { toggleThreadLike } from "@/stores/threadsSlice";
 import FollowersFollowingModal from "../components/profile/FollowersFollowingModal";
 import ProfileModal from "../components/profile/ProfileModal";
 import EditProfile from "../components/profile/EditProfile";
-import ThreadCard from "../components/thread/ThreadCard";
-import ReplyCard from "../components/reply/ReplyCard";
+import ProfilePosts from "../components/profile/ProfilePosts";
+import ProfileMedia from "../components/profile/ProfileMedia";
 import ImagePopup from "../components/ui/ImagePopup";
 import ThreadDetailModal from "../components/ui/ThreadDetailModal";
 
@@ -36,15 +35,12 @@ interface Thread {
   isLiked?: boolean;
 }
 
-
-
 export default function ProfilePage() {
   const navigate = useNavigate();
   const { userId } = useParams<{ userId: string }>();
   const dispatch = useDispatch();
   const currentUser = useSelector((state: any) => state.user.user);
   const token = useSelector((state: any) => state.user.token) || localStorage.getItem("token");
-  const { replies } = useSelector((state: any) => state.replies);
 
   const [profileUser, setProfileUser] = useState<UserProfile | null>(null);
   const [stats, setStats] = useState<UserStats>({ followers: 0, following: 0 });
@@ -65,8 +61,6 @@ export default function ProfilePage() {
   const [threadsLoading, setThreadsLoading] = useState(false);
   const [showThreadModal, setShowThreadModal] = useState(false);
   const [selectedThread, setSelectedThread] = useState<Thread | null>(null);
-  const [replyContent, setReplyContent] = useState("");
-  const [replySubmitting, setReplySubmitting] = useState(false);
   const [likingThread, setLikingThread] = useState<number | null>(null);
   const [showImagePopup, setShowImagePopup] = useState(false);
 
@@ -144,10 +138,12 @@ export default function ProfilePage() {
     try {
       const [followersRes, followingRes] = await Promise.all([
         fetch(`http://localhost:3002/api/user/${id}/followers`, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
+          credentials: 'include',
         }),
         fetch(`http://localhost:3002/api/user/${id}/following`, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
+          credentials: 'include',
         })
       ]);
 
@@ -174,40 +170,44 @@ export default function ProfilePage() {
 
       // Check if we have an API endpoint for user threads - if not, we'll simulate it
       const response = await fetch(`http://localhost:3002/api/user/${id}/threads`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       });
 
       if (response.ok) {
         const threadsData = await response.json();
         const threads = threadsData || [];
 
-        // If we're viewing our own profile, fetch like status for each thread
-        if (isCurrentUser) {
-          const threadsWithLikes = await Promise.all(
-            threads.map(async (thread: Thread) => {
-              try {
-                // Check if current user liked this thread
-                const likeStatusResponse = await fetch(`http://localhost:3002/api/threads/${thread.id}/like/status`, {
-                  headers: { Authorization: `Bearer ${token}` }
-                });
+        // Always sync like status from localStorage for the current user
+        // This ensures like colors persist across navigation
+        const likedThreads = JSON.parse(localStorage.getItem('likedThreads') || '{}');
 
-                if (likeStatusResponse.ok) {
-                  const { isLiked, likesCount } = await likeStatusResponse.json();
-                  return { ...thread, isLiked, likesCount };
-                } else {
-                  return { ...thread, isLiked: false, likesCount: thread.likesCount || 0 };
-                }
-              } catch (error) {
-                console.error(`Error fetching like status for thread ${thread.id}:`, error);
-                return { ...thread, isLiked: false, likesCount: thread.likesCount || 0 };
+        const threadsWithLikes = await Promise.all(
+          threads.map(async (thread: Thread) => {
+            try {
+              const likeStatusResponse = await fetch(`http://localhost:3002/api/threads/${thread.id}/like/status`, {
+                headers: { Authorization: `Bearer ${token}` },
+                credentials: 'include',
+              });
+
+              if (likeStatusResponse.ok) {
+                const { likesCount } = await likeStatusResponse.json();
+                // Use localStorage to preserve user's like actions across navigation
+                const isLikedByCurrentUser = !!likedThreads[thread.id];
+                return { ...thread, isLiked: isLikedByCurrentUser, likesCount };
+              } else {
+                // Fallback: use thread.likesCount if available
+                const isLikedByCurrentUser = !!likedThreads[thread.id];
+                return { ...thread, isLiked: isLikedByCurrentUser, likesCount: thread.likesCount || 0 };
               }
-            })
-          );
-          setUserThreads(threadsWithLikes);
-        } else {
-          // For other users' profiles, just use the default like status
-          setUserThreads(threads.map((thread: Thread) => ({ ...thread, isLiked: false })));
-        }
+            } catch (error) {
+              console.error(`Error fetching like status for thread ${thread.id}:`, error);
+              const isLikedByCurrentUser = !!likedThreads[thread.id];
+              return { ...thread, isLiked: isLikedByCurrentUser, likesCount: thread.likesCount || 0 };
+            }
+          })
+        );
+        setUserThreads(threadsWithLikes);
       } else {
         // If no API endpoint yet, show empty threads
         setUserThreads([]);
@@ -294,6 +294,11 @@ export default function ProfilePage() {
     }
   };
 
+  const handleOpenThreadModal = (thread: Thread) => {
+    setSelectedThread(thread);
+    setShowThreadModal(true);
+  };
+
   const handleToggleThreadLike = async (threadId: number, hasLiked: boolean) => {
     if (likingThread) return; // Prevent double clicks
 
@@ -301,59 +306,47 @@ export default function ProfilePage() {
 
     console.log("Toggling like for thread:", threadId, "hasLiked:", hasLiked);
 
-    // Find the thread in our threads array
-    const threadIndex = userThreads.findIndex(t => t.id === threadId);
-    if (threadIndex === -1) return;
-
-    const thread = userThreads[threadIndex];
-    const originalThread = { ...thread };
-    const newIsLiked = !hasLiked;
-
     try {
-      // Optimistic update for userThreads
-      setUserThreads(prevThreads =>
-        prevThreads.map(t =>
-          t.id === threadId
-            ? {
-                ...t,
-                likesCount: hasLiked ? (t.likesCount || 0) - 1 : (t.likesCount || 0) + 1,
-                isLiked: newIsLiked
-              }
-            : t
-        )
-      );
+      // Call Redux action to toggle like
+      const result = await dispatch(toggleThreadLike({ threadId, currentIsLiked: hasLiked }));
 
-      // Optimistic update for selectedThread (if modal is open)
-      if (selectedThread && selectedThread.id === threadId) {
-        setSelectedThread(prev => prev ? {
-          ...prev,
-          likesCount: hasLiked ? (prev.likesCount || 0) - 1 : (prev.likesCount || 0) + 1,
-          isLiked: newIsLiked
-        } : null);
+      // On success, update local state with server response
+      if (result.payload) {
+        const { threadId: updatedThreadId, isLiked, likesCount } = result.payload;
+
+        // Update local userThreads
+        setUserThreads(prevThreads =>
+          prevThreads.map(t =>
+            t.id === updatedThreadId
+              ? { ...t, isLiked, likesCount }
+              : t
+          )
+        );
+
+        // Update selectedThread if modal is open
+        if (selectedThread && selectedThread.id === updatedThreadId) {
+          setSelectedThread(prev => prev ? { ...prev, isLiked, likesCount } : null);
+        }
+
+        // Persist liked status in localStorage
+        const likedThreads = JSON.parse(localStorage.getItem('likedThreads') || '{}');
+        if (isLiked) {
+          likedThreads[updatedThreadId] = true;
+        } else {
+          delete likedThreads[updatedThreadId];
+        }
+        localStorage.setItem('likedThreads', JSON.stringify(likedThreads));
+
+        // Broadcast accurate update to other pages
+        broadcastLikeUpdate(updatedThreadId, currentUser?.id || 0, isLiked, likesCount);
       }
-
-      // Call Redux action
-      await dispatch(toggleThreadLike({ threadId, currentIsLiked: hasLiked }));
-
-      // Success - broadcast the update to other pages
-      broadcastLikeUpdate(threadId, currentUser?.id || 0, newIsLiked, originalThread.likesCount ? (hasLiked ? originalThread.likesCount - 1 : originalThread.likesCount + 1) : (hasLiked ? 0 : 1));
     } catch (error) {
-      // Revert to original state
-      setUserThreads(prevThreads =>
-        prevThreads.map(t =>
-          t.id === threadId ? originalThread : t
-        )
-      );
-      if (selectedThread && selectedThread.id === threadId) {
-        setSelectedThread(originalThread);
-      }
       console.error('Error toggling thread like:', error);
+      // Note: No revert needed since no optimistic update was made
     } finally {
       setLikingThread(null);
     }
   };
-
-
 
   const BASE_URL = 'http://localhost:3002/uploads/';
 
@@ -483,110 +476,25 @@ export default function ProfilePage() {
             {/* Tab Content */}
             <div className="p-4">
               {activeTab === 'posts' && (
-                <div>
-                  <h3 className="text-lg font-semibold text-blue-950 mb-4">All Posts</h3>
-                  {threadsLoading ? (
-                    <div className="text-center py-8">
-                      <div className="text-blue-950">Loading posts...</div>
-                    </div>
-                  ) : userThreads.length > 0 ? (
-                    <div>
-                      {userThreads.map(thread => {
-                        // Transform thread data to match ThreadCard interface
-                        const threadCardData = {
-                          id: thread.id,
-                          content: thread.content,
-                          image: thread.images?.[0] || undefined, // Use first image if available
-                          number_of_replies: thread.repliesCount || 0, // We'll add this to API
-                          created_at: thread.created_at,
-                          likesCount: thread.likesCount || 0, // We'll add this to API
-                          isLiked: thread.isLiked || false,
-                          full_name: profileUser.full_name,
-                          username: profileUser.username,
-                          avatar: profileUser.photo_profile || undefined
-                        };
-
-                        return (
-                          <ThreadCard
-                            key={thread.id}
-                            thread={threadCardData}
-                            toggleLike={handleToggleThreadLike}
-                            from="profile"
-                          />
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <div className="text-gray-500">
-                        {isCurrentUser ? "You haven't posted anything yet." : "This user hasn't posted anything yet."}
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <ProfilePosts
+                  userThreads={userThreads}
+                  threadsLoading={threadsLoading}
+                  isCurrentUser={isCurrentUser}
+                  profileUser={profileUser!}
+                  onToggleLike={handleToggleThreadLike}
+                />
               )}
 
               {activeTab === 'media' && (
-                <div>
-                  <h3 className="text-lg font-semibold text-blue-950 mb-4">Media</h3>
-                  {threadsLoading ? (
-                    <div className="text-center py-8">
-                      <div className="text-blue-950">Loading media...</div>
-                    </div>
-                  ) : (() => {
-                    // Extract all images from user's threads
-                    const allImages = userThreads
-                      .filter(thread => thread.images && thread.images.length > 0)
-                      .flatMap(thread => thread.images!.map(image => ({
-                        image,
-                        threadId: thread.id,
-                        createdAt: thread.created_at
-                      })));
-
-                    return allImages.length > 0 ? (
-                      <div className="grid grid-cols-3 gap-4">
-                        {allImages.map((item, index) => (
-                          <div key={`${item.threadId}-${index}`} className="aspect-square">
-                            <img
-                              src={`${BASE_URL}${item.image}`}
-                              alt={`Media ${index + 1}`}
-                              className="w-full h-full object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
-                              onClick={async () => {
-                                const thread = userThreads.find(t => t.id === item.threadId);
-                                if (thread) {
-                                  let finalThread = thread;
-                                  // For other users, fetch like status for this thread
-                                  if (!isCurrentUser) {
-                                    try {
-                                      const likeStatusResponse = await fetch(`http://localhost:3002/api/threads/${thread.id}/like/status`, {
-                                        headers: { Authorization: `Bearer ${token}` }
-                                      });
-                                      if (likeStatusResponse.ok) {
-                                        const { isLiked, likesCount } = await likeStatusResponse.json();
-                                        finalThread = { ...thread, isLiked, likesCount };
-                                      }
-                                    } catch (error) {
-                                      console.error(`Error fetching like status for thread ${thread.id}:`, error);
-                                    }
-                                  }
-                                  setSelectedThread(finalThread);
-                                  dispatch(fetchRepliesByThread(item.threadId.toString()));
-                                  setShowThreadModal(true);
-                                }
-                              }}
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-8">
-                        <div className="text-gray-500">
-                          {isCurrentUser ? "You haven't shared any media yet." : "This user hasn't shared any media yet."}
-                        </div>
-                      </div>
-                    );
-                  })()}
-                </div>
+                <ProfileMedia
+                  userThreads={userThreads}
+                  threadsLoading={threadsLoading}
+                  isCurrentUser={isCurrentUser}
+                  currentUser={currentUser}
+                  token={token}
+                  onOpenThreadModal={handleOpenThreadModal}
+                  BASE_URL={BASE_URL}
+                />
               )}
             </div>
 
@@ -617,6 +525,7 @@ export default function ProfilePage() {
               token={token}
               currentUser={currentUser}
               onToggleImagePopup={() => setShowImagePopup(true)}
+              onToggleLike={handleToggleThreadLike}
             />
           </>
         )}

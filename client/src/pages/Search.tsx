@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { ArrowLeft, Search as SearchIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 
 interface SearchUser {
   id: number;
@@ -8,12 +9,14 @@ interface SearchUser {
   full_name: string;
   photo_profile: string | null;
   bio: string | null;
+  isFollowing?: boolean;
 }
 
 export default function SearchPage() {
   const [query, setQuery] = useState("");
   const [users, setUsers] = useState<SearchUser[]>([]);
   const [suggestions, setSuggestions] = useState<SearchUser[]>([]);
+  const [followedSuggestionUsers, setFollowedSuggestionUsers] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searched, setSearched] = useState(false);
@@ -22,6 +25,7 @@ export default function SearchPage() {
   const debounceTimeout = useRef<number | null>(null);
 
   const token = localStorage.getItem("token");
+  const currentUser = useSelector((state: any) => state.user.user);
 
   // Debounced search for suggestions
   const searchSuggestions = useCallback(async (searchQuery: string) => {
@@ -93,23 +97,84 @@ export default function SearchPage() {
     setSearched(true);
 
     try {
-      const response = await fetch(`http://localhost:3002/api/user/search?q=${encodeURIComponent(query)}`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
+      console.log('Current user:', currentUser);
+      // Fetch search results and current user's following list
+      const [searchResponse, followingResponse] = await Promise.all([
+        fetch(`http://localhost:3002/api/user/search?q=${encodeURIComponent(query)}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        currentUser?.id ? fetch(`http://localhost:3002/api/user/${currentUser.id}/following`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }) : Promise.resolve(null)
+      ]);
 
-      if (response.ok) {
-        const data = await response.json();
-        setUsers(data);
+      let searchResults: SearchUser[] = [];
+      let followingList: SearchUser[] = [];
+
+      if (searchResponse.ok) {
+        searchResults = await searchResponse.json();
+        console.log('Search results:', searchResults);
       } else {
-        setUsers([]);
+        console.log('Search failed:', searchResponse.status);
       }
+
+      if (followingResponse && followingResponse.ok) {
+        followingList = await followingResponse.json();
+        console.log('Following list:', followingList);
+      } else if (followingResponse) {
+        console.log('Following fetch failed:', followingResponse.status);
+      } else {
+        console.log('No following response (no current user)');
+      }
+
+      // Mark search results with following status
+      const followingIds = new Set(followingList.map(u => u.id));
+      const usersWithFollowingStatus = searchResults.map(user => ({
+        ...user,
+        isFollowing: followingIds.has(user.id)
+      }));
+      console.log('Users with following status:', usersWithFollowingStatus);
+
+      setUsers(usersWithFollowingStatus);
     } catch (error) {
       console.error("Search error:", error);
       setUsers([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleFollow = async (targetUserId: number) => {
+    if (!token) return;
+
+    try {
+      const response = await fetch('http://localhost:3002/api/user/follow', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ targetUserId })
+      });
+
+      if (response.ok) {
+        // Update user in search results
+        setUsers(prev => prev.map(u =>
+          u.id === targetUserId ? { ...u, isFollowing: true } : u
+        ));
+
+        // Add to followed suggestion users
+        setFollowedSuggestionUsers(prev => new Set([...prev, targetUserId]));
+
+        // Dispatch real-time event for following count update
+        window.dispatchEvent(new CustomEvent('followingCountChanged', {
+          detail: { action: 'increment' }
+        }));
+      } else {
+        console.error('Failed to follow user');
+      }
+    } catch (error) {
+      console.error("Error following user:", error);
     }
   };
 
@@ -162,18 +227,40 @@ export default function SearchPage() {
               suggestions.map(user => (
                 <div
                   key={user.id}
-                  className="flex items-center space-x-3 px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                  onClick={() => handleSuggestionClick(user)}
+                  className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
                 >
-                  <img
-                    src={user.photo_profile ? `${BASE_URL}${user.photo_profile}` : "https://cdn.pixabay.com/photo/2023/02/18/11/00/icon-7797704_640.png"}
-                    alt={user.username}
-                    className="w-8 h-8 rounded-full object-cover"
-                  />
-                  <div>
-                    <div className="font-semibold text-blue-950 text-sm">{user.full_name}</div>
-                    <div className="text-xs text-gray-600">@{user.username}</div>
+                  <div
+                    className="flex items-center space-x-3 flex-1 cursor-pointer"
+                    onClick={() => handleSuggestionClick(user)}
+                  >
+                    <img
+                      src={user.photo_profile ? `${BASE_URL}${user.photo_profile}` : "https://cdn.pixabay.com/photo/2023/02/18/11/00/icon-7797704_640.png"}
+                      alt={user.username}
+                      className="w-8 h-8 rounded-full object-cover"
+                    />
+                    <div>
+                      <div className="font-semibold text-blue-950 text-sm">{user.full_name}</div>
+                      <div className="text-xs text-gray-600">@{user.username}</div>
+                    </div>
                   </div>
+                  {followedSuggestionUsers.has(user.id) ? (
+                    <button
+                      className="bg-red-100 text-red-600 hover:bg-red-200 px-3 py-1 rounded-lg transition-colors text-xs ml-2"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      Following
+                    </button>
+                  ) : (
+                    <button
+                      className="bg-blue-600 text-white hover:bg-blue-700 px-3 py-1 rounded-lg transition-colors text-xs ml-2"
+                      onClick={(e) => {
+                        e.stopPropagation(); // Prevent triggering the suggestion click
+                        handleFollow(user.id);
+                      }}
+                    >
+                      Follow
+                    </button>
+                  )}
                 </div>
               ))
             )}
@@ -221,12 +308,29 @@ export default function SearchPage() {
                         )}
                       </div>
                     </div>
-                    <button
-                      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                      onClick={() => navigate(`/profile/${user.id}`)}
-                    >
-                      View Profile
-                    </button>
+                    <div className="flex gap-2">
+                      {user.isFollowing ? (
+                        <button
+                          className="bg-red-100 text-red-600 hover:bg-red-200 px-4 py-2 rounded-lg transition-colors"
+                          onClick={() => navigate(`/profile/${user.id}`)}
+                        >
+                          Following ✓
+                        </button>
+                      ) : (
+                        <button
+                          className="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-lg transition-colors"
+                          onClick={() => handleFollow(user.id)}
+                        >
+                          Follow
+                        </button>
+                      )}
+                      <button
+                        className="bg-gray-200 text-gray-700 hover:bg-gray-300 px-4 py-2 rounded-lg transition-colors"
+                        onClick={() => navigate(`/profile/${user.id}`)}
+                      >
+                        View Profile
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
