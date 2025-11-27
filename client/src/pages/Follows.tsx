@@ -37,10 +37,10 @@ export default function FollowsPage() {
       }
     };
 
-    window.addEventListener('followingCountChanged', handleFollowingChange);
+    window.addEventListener('currentUserFollowingChange', handleFollowingChange);
 
     return () => {
-      window.removeEventListener('followingCountChanged', handleFollowingChange);
+      window.removeEventListener('currentUserFollowingChange', handleFollowingChange);
     };
   }, [currentUser]);
 
@@ -113,7 +113,7 @@ export default function FollowsPage() {
         }
 
         // Dispatch real-time event for following count update
-        window.dispatchEvent(new CustomEvent('followingCountChanged', {
+        window.dispatchEvent(new CustomEvent('currentUserFollowingChange', {
           detail: { action: 'increment' }
         }));
       } else {

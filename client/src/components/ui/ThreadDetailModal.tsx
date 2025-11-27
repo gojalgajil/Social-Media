@@ -160,12 +160,31 @@ export default function ThreadDetailModal({
         {/* RIGHT SIDE — DETAILS + COMMENTS */}
         <div className="w-1/2 flex flex-col bg-white">
 
-          {/* USER INFO - Match Profile Page Design */}
-          <UserProfileHeader user={profileUser} />
+          {/* USER INFO - User Avatar, Name, Username */}
+          <div className="p-4 bg-white border-b">
+            <div className="flex items-center gap-3">
+              <img
+                src={profileUser.photo_profile
+                  ? `${BASE_URL}${profileUser.photo_profile}`
+                  : "https://cdn.pixabay.com/photo/2023/02/18/11/00/icon-7797704_640.png"
+                }
+                className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
+                alt={profileUser.full_name}
+              />
+              <div className="flex-1">
+                <div className="font-semibold text-blue-950 text-sm">
+                  {profileUser.full_name}
+                </div>
+                <div className="text-xs text-gray-600">
+                  @{profileUser.username}
+                </div>
+              </div>
+            </div>
+          </div>
 
           {/* THREAD CONTENT */}
           <div className="p-4 border-b">
-            <p className="text-gray-900 text-sm leading-relaxed mb-3">{thread.content}</p>
+            <p className="text-gray-900 text-sm leading-relaxed mb-3 whitespace-pre-line">{thread.content}</p>
 
             <div className="flex items-center justify-between text-xs text-gray-500">
               <div>

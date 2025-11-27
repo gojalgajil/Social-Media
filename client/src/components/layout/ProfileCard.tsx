@@ -92,10 +92,10 @@ export function ProfileCard() {
       }
     };
 
-    window.addEventListener('followingCountChanged', handleFollowingCountChange);
+    window.addEventListener('currentUserFollowingChange', handleFollowingCountChange);
 
     return () => {
-      window.removeEventListener('followingCountChanged', handleFollowingCountChange);
+      window.removeEventListener('currentUserFollowingChange', handleFollowingCountChange);
     };
   }, []);
 

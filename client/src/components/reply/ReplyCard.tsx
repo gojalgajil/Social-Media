@@ -67,7 +67,7 @@ export default function ReplyCard({
           </span>
         </div>
 
-        <p className="mt-1 text-black text-sm">{reply.content}</p>
+        <p className="mt-1 text-black text-sm whitespace-pre-line">{reply.content}</p>
 
         {reply.image && (
           <img

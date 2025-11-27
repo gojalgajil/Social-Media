@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 
 interface SuggestedUser {
   id: number;
@@ -15,6 +16,7 @@ export function SuggestedUsers() {
   const [followingStates, setFollowingStates] = useState<{[key: number]: boolean}>({});
   const user = useSelector((state: any) => state.user.user);
   const token = useSelector((state: any) => state.user.token) || localStorage.getItem("token");
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchSuggestedUsers = async () => {
@@ -62,7 +64,7 @@ export function SuggestedUsers() {
         setUsers(prev => prev.filter(u => u.id !== targetUserId));
 
         // Trigger real-time following count update
-        window.dispatchEvent(new CustomEvent('followingCountChanged', {
+        window.dispatchEvent(new CustomEvent('currentUserFollowingChange', {
           detail: { action: 'increment' }
         }));
       } else {
@@ -96,7 +98,10 @@ export function SuggestedUsers() {
               key={suggestedUser.id}
               className="flex justify-between items-center hover:bg-blue-300 p-1 rounded-lg"
             >
-              <div className="flex items-center gap-1">
+              <div
+                className="flex items-center gap-1 cursor-pointer hover:bg-blue-400 rounded transition-colors"
+                onClick={() => navigate(`/profile/${suggestedUser.id}`)}
+              >
                 <img
                   src={suggestedUser.photo_profile ? `${BASE_URL}${suggestedUser.photo_profile}` : "https://cdn.pixabay.com/photo/2023/02/18/11/00/icon-7797704_640.png"}
                   alt={suggestedUser.full_name}

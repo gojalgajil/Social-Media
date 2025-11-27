@@ -60,7 +60,7 @@ export default function ThreadCard({
           </span>
         </div>
 
-        <p className="mt-1 text-black text-sm">{thread.content}</p>
+        <p className="mt-1 text-black text-sm whitespace-pre-line">{thread.content}</p>
 
         {thread.image && (
           <img

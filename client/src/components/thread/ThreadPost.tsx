@@ -81,25 +81,24 @@ const CreateThreadComponent = forwardRef<CreateThreadRef, CreateThreadProps>(
   <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-4">
 
     {/* AVATAR + TEXTAREA */}
-    <div className="flex gap-3">
+    <div className="flex gap-3 items-start">
       <img
         src={
           currentUser?.photo_profile
             ? `http://localhost:3002/uploads/${currentUser.photo_profile}`
             : "https://cdn.pixabay.com/photo/2023/02/18/11/00/icon-7797704_640.png"
         }
-        className="h-8 w-8 rounded-full object-cover"
+        className="h-8 w-8 rounded-full object-cover flex-shrink-0"
         alt="profile"
       />
-      <div>
-        <textarea
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          placeholder="What is happening?!"
-          className="flex-1 bg-transparent text-blue-950 text-lg outline-none resize-none  placeholder-blue-950"
-          autoFocus
-        />
-      </div>
+      <textarea
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+
+        placeholder="What is happening?!"
+        className="flex-1 bg-transparent text-blue-950 text-lg outline-none resize-none placeholder-blue-950  w-full"
+        autoFocus
+      />
     </div>
         {imagePreview && (
       <div className="relative mt-2 inline-block w-fit overflow-hidden">

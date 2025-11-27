@@ -35,6 +35,9 @@ export default function HomePage() {
     const likeUpdateCallback = (data: { threadId: number; userId: number; liked: boolean; likesCount: number }) => {
       console.log("Homepage receiving like update:", data);
 
+      // Find the existing thread to preserve its isLiked status if it's not the current user
+      const existingThread = threads.find((t: any) => t.id === data.threadId);
+
       // Update the specific thread in our threads array
       dispatch({
         type: 'threads/updateThreadLikeStatus',
@@ -42,7 +45,7 @@ export default function HomePage() {
           id: data.threadId,
           likesCount: data.likesCount,
           // Update isLiked only for the user who triggered the action
-          ...(data.userId === currentUser?.id ? { isLiked: data.liked } : {})
+          ...(data.userId === currentUser?.id ? { isLiked: data.liked } : { isLiked: existingThread?.isLiked ?? false })
         }
       });
     };

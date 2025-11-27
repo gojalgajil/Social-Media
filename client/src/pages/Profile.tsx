@@ -64,6 +64,8 @@ export default function ProfilePage() {
   const [selectedThread, setSelectedThread] = useState<Thread | null>(null);
   const [likingThread, setLikingThread] = useState<number | null>(null);
   const [showImagePopup, setShowImagePopup] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
 
   // Handle route logic
   useEffect(() => {
@@ -83,8 +85,77 @@ export default function ProfilePage() {
       fetchUserProfile(userId);
       fetchStats(userId);
       fetchUserThreads(userId);
+      checkFollowStatus(userId); // Check if following this user
     }
   }, [userId, currentUser]);
+
+  // Check if current user is following the profile user
+  const checkFollowStatus = async (profileUserId: string) => {
+    if (!token || !currentUser?.id) return;
+
+    try {
+      const response = await fetch(`http://localhost:3002/api/user/${currentUser.id}/following`, {
+        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        const followingList = await response.json();
+        const isFollowingProfile = followingList.some((user: any) => user.id.toString() === profileUserId);
+        setIsFollowing(isFollowingProfile);
+      }
+    } catch (error) {
+      console.error("Error checking follow status:", error);
+    }
+  };
+
+  // Handle follow/unfollow
+  const handleFollow = async () => {
+    if (!token || !profileUser?.id || followLoading) return;
+
+    setFollowLoading(true);
+
+    try {
+      const endpoint = isFollowing ? 'unfollow' : 'follow';
+      const response = await fetch(`http://localhost:3002/api/user/${endpoint}`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ targetUserId: profileUser.id })
+      });
+
+      if (response.ok) {
+        setIsFollowing(!isFollowing);
+
+        // Update the profile user's follower count
+        setStats(prev => ({
+          ...prev,
+          followers: isFollowing ? prev.followers - 1 : prev.followers + 1
+        }));
+
+        // If this is the current user's profile, also update their following count
+        if (isCurrentUser) {
+          setStats(prev => ({
+            ...prev,
+            following: isFollowing ? prev.following - 1 : prev.following + 1
+          }));
+        } else {
+          // Notify other components about the following count change for current user
+          window.dispatchEvent(new CustomEvent('currentUserFollowingChange', {
+            detail: { action: isFollowing ? 'decrement' : 'increment' }
+          }));
+        }
+      } else {
+        console.error('Failed to follow/unfollow user');
+      }
+    } catch (error) {
+      console.error("Error following/unfollowing user:", error);
+    } finally {
+      setFollowLoading(false);
+    }
+  };
 
   // Listen for real-time following count updates
   useEffect(() => {
@@ -389,7 +460,7 @@ export default function ProfilePage() {
             <h3 className="font-bold text-blue-950">{profileUser.full_name}</h3>
           </div>
 
-          {/* Header + Avatar + Edit */}
+          {/* Header + Avatar */}
           <div className="relative">
             <UserProfileHeader
               user={profileUser}
@@ -404,46 +475,64 @@ export default function ProfilePage() {
       ? `http://localhost:3002/uploads/${profileUser.photo_profile}`
       : "/default-avatar.png"
   }
-  className="w-20 h-20 rounded-full border-4 border-white absolute left-6 -bottom-10 object-cover shrink-0"
+  className="w-20 h-20 rounded-full border-4 border-blue-300 absolute left-6 -bottom-10 object-cover shrink-0"
   alt="profile"
 />
-
-            {/* Edit button */}
-            {isCurrentUser && (
-              <button
-                className="absolute bottom-3 right-3 px-3 py-1 bg-blue-500 text-white text-xs rounded-lg hover:bg-blue-400 cursor-pointer transition"
-                onClick={handleEditProfile}
-              >
-                Edit Profile
-              </button>
-            )}
           </div>
 
-          {/* Profile Info */}
-          <div className="pt-14 px-4">
-            {/* Name */}
-            <h3 className="text-lg font-bold text-blue-950">{profileUser.full_name}</h3>
+          {/* Profile Info + Action Button */}
+          <div className="px-4 py-1 mt-0">
+            <div className="flex justify-between items-start">
+              <div className="flex-1 mt-8">
+                {/* Name */}
+                <h3 className="text-lg font-bold text-blue-950">{profileUser.full_name}</h3>
 
-            {/* Username */}
-            <p className="text-gray-700 text-xs italic">@{profileUser.username}</p>
+                {/* Username */}
+                <p className="text-gray-700 text-xs italic">@{profileUser.username}</p>
 
-            {/* Bio */}
-            {profileUser.bio && (
-              <p className="mt-2 font-semibold text-sm text-gray-800 leading-relaxed whitespace-pre-line">
-                {profileUser.bio}
-              </p>
-            )}
+                {/* Bio */}
+                {profileUser.bio && (
+                  <p className="mt-2 font-semibold text-sm text-gray-800 leading-relaxed whitespace-pre-line">
+                    {profileUser.bio}
+                  </p>
+                )}
 
-            {/* Stats */}
-            <div className="flex items-center gap-4 text-xs mt-3">
-              <div onClick={handleFollowersClick} className="cursor-pointer hover:opacity-75">
-                <span className="text-blue-950 font-bold">{stats.followers}</span>
-                <span className="text-gray-700 ml-1">Followers</span>
+                {/* Stats */}
+                <div className="flex items-center gap-4 text-xs mt-3">
+                  <div onClick={handleFollowersClick} className="cursor-pointer hover:opacity-75">
+                    <span className="text-blue-950 font-bold">{stats.followers}</span>
+                    <span className="text-gray-700 ml-1">Followers</span>
+                  </div>
+
+                  <div onClick={handleFollowingClick} className="cursor-pointer hover:opacity-75">
+                    <span className="text-blue-950 font-bold">{stats.following}</span>
+                    <span className="text-gray-700 ml-1">Following</span>
+                  </div>
+                </div>
               </div>
 
-              <div onClick={handleFollowingClick} className="cursor-pointer hover:opacity-75">
-                <span className="text-blue-950 font-bold">{stats.following}</span>
-                <span className="text-gray-700 ml-1">Following</span>
+              {/* Action buttons */}
+              <div className="ml-4 flex-shrink-0">
+                {isCurrentUser ? (
+                  <button
+                    className="px-3 py-1 bg-blue-500 text-white text-xs rounded-lg hover:bg-blue-400 cursor-pointer transition"
+                    onClick={handleEditProfile}
+                  >
+                    Edit Profile
+                  </button>
+                ) : (
+                  <button
+                    className="px-3 py-1 text-xs rounded-lg cursor-pointer transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={handleFollow}
+                    disabled={followLoading}
+                    style={{
+                      backgroundColor: isFollowing ? '#ef4444' : '#2563eb',
+                      color: 'white'
+                    }}
+                  >
+                    {followLoading ? 'Loading...' : isFollowing ? 'Following' : 'Follow'}
+                  </button>
+                )}
               </div>
             </div>
           </div>

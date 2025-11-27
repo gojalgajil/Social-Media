@@ -33,6 +33,7 @@ const threads = await Promise.all(
       full_name: t.user?.full_name,
       username: t.user?.username || "user",
       avatar: t.user?.photo_profile || null,
+      userId: t.user?.id,
     };
   })
 );
@@ -182,6 +183,7 @@ const threads = await Promise.all(
       full_name: user?.full_name,
       username: user?.username || "user",
       avatar: user?.photo_profile || null,
+      userId: user?.id,
     };
 
     broadcast({ type: 'new_thread', thread: enrichedThread });

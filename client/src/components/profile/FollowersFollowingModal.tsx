@@ -104,7 +104,7 @@ export default function FollowersFollowingModal({ isOpen, onClose, type, userId,
         onFollowingChanged?.();
 
         // Dispatch real-time event for following count update
-        window.dispatchEvent(new CustomEvent('followingCountChanged', {
+        window.dispatchEvent(new CustomEvent('currentUserFollowingChange', {
           detail: { action: 'increment' }
         }));
       } else {
@@ -142,7 +142,7 @@ export default function FollowersFollowingModal({ isOpen, onClose, type, userId,
         onFollowingChanged?.();
 
         // Dispatch real-time event for following count update
-        window.dispatchEvent(new CustomEvent('followingCountChanged', {
+        window.dispatchEvent(new CustomEvent('currentUserFollowingChange', {
           detail: { action: 'decrement' }
         }));
       } else {

@@ -250,6 +250,7 @@ router.get('/:id/threads', authenticate, async (req, res) => {
 });
 
 router.get('/search', authenticate, async (req, res) => {
+  const { user } = req as any;
   const { q } = req.query;
 
   if (!q || typeof q !== 'string' || q.trim().length < 1) {
@@ -261,18 +262,24 @@ router.get('/search', authenticate, async (req, res) => {
 
     const users = await prisma.user.findMany({
       where: {
-        OR: [
+        AND: [
+          // Exclude current logged-in user from search results
+          { id: { not: user.id } },
           {
-            username: {
-              contains: searchQuery,
-              mode: 'insensitive'
-            }
-          },
-          {
-            full_name: {
-              contains: searchQuery,
-              mode: 'insensitive'
-            }
+            OR: [
+              {
+                username: {
+                  contains: searchQuery,
+                  mode: 'insensitive'
+                }
+              },
+              {
+                full_name: {
+                  contains: searchQuery,
+                  mode: 'insensitive'
+                }
+              }
+            ]
           }
         ]
       },

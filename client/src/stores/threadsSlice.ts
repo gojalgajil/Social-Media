@@ -12,6 +12,7 @@ interface Thread {
   full_name?: string;
   username?: string;
   avatar?: string;
+  userId?: number;
 }
 
 interface ThreadsState {

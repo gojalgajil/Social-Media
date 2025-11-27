@@ -169,7 +169,7 @@ export default function SearchPage() {
         setFollowedSuggestionUsers(prev => new Set([...prev, targetUserId]));
 
         // Dispatch real-time event for following count update
-        window.dispatchEvent(new CustomEvent('followingCountChanged', {
+        window.dispatchEvent(new CustomEvent('currentUserFollowingChange', {
           detail: { action: 'increment' }
         }));
       } else {
